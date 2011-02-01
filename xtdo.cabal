@@ -1,0 +1,12 @@
+Name:                xtdo
+Version:             0.1
+Synopsis:            TODO list thing
+Description:         TODO list thing
+License:             MIT
+License-file:        LICENSE
+Author:              Xavier Shay
+Maintainer:          Xavier Shay <contact@rhnh.net>
+Build-Depends:       base
+
+Executable:          xtdo
+Main-is:             Xtdo.hs
