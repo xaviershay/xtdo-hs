@@ -17,7 +17,10 @@ xtdo ["l", "a"] tasks = (tasks, [Today, Next])
 
 finish (tasks, categoriesToDisplay) = 
   putStrLn $ intercalate "\n" output
-  where output = flatten [[formatCategory c] ++ [formatTask t | t <- tasks, category t == c] | c <- categoriesToDisplay]
+  where output = flatten [ [formatCategory c] ++ 
+                           [formatTask t | t <- tasks, category t == c] ++ 
+                           [""]
+                         | c <- categoriesToDisplay]
 
 flatten = foldl (++) [] -- Surely this is in the stdlib?
 
