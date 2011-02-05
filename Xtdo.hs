@@ -18,22 +18,35 @@ main = do
   args <- getArgs
   tasks <- loadYaml
   now <- getCurrentTime
-  finish $ xtdo args tasks (utctDay now)
+  let today = (utctDay now)
+  finish $ xtdo args (addCategory tasks today) today
 
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 data Task = Task { name :: String, scheduled :: Maybe Day, category :: TaskCategory } deriving(Show)
 
+addCategory tasks today = map (addCategoryToTask today) tasks
+
+addCategoryToTask today Task{name=n,scheduled=Just s}
+  | s == today = Task{name=n,scheduled=Just s,category=Today}
+  | otherwise  = Task{name=n,scheduled=Just s,category=Scheduled}
+
+addCategoryToTask today Task{name=n,scheduled=Nothing} 
+             = Task{name=n,scheduled=Nothing,category=Next}
+
 xtdo :: [String] -> [Task] -> Day -> ([Task], [TaskCategory])
 xtdo ["l"]      tasks today = (tasks, [Today])
-xtdo ["l", "a"] tasks today = (tasks, [Today, Next])
+xtdo ["l", "a"] tasks today = (tasks, [Today, Next, Scheduled])
 xtdo ("d":xs)   tasks today = ([x | x <- tasks, name x /= intercalate " " xs], [Today, Next])
 xtdo ("a":when:xs) tasks today
-  | when =~ "[0-9]d" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
-  | otherwise        = (tasks ++ [makeTask ([when] ++ xs) Nothing     Next],      [Next])
+  | when =~ "0d"     = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
+  | when =~ "[1-9]d" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
+  | otherwise        = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
 
+-- TODO: Should return the actual day, rather than just a placeholder of today
 day today when = today
 
 makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
+
 finish (tasks, categoriesToDisplay) = do
   encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
   putStrLn $ intercalate "\n" output ++ "\n"
@@ -49,8 +62,9 @@ formatCategory x = "\n==== " ++ show x ++ "\n"
 formatTask :: Task -> String
 formatTask x = "  " ++ name x
 
-toYaml Task{name=x, scheduled=Nothing} = Mapping [("name", Scalar x)]
-toYaml Task{name=x, scheduled=Just when}    = Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
+toYaml Task{name=x, scheduled=Nothing}   = Mapping [("name", Scalar x)]
+toYaml Task{name=x, scheduled=Just when} = Mapping [("name", Scalar x),       
+                                                    ("scheduled", Scalar $ dayToString when)]
 
 dayToString :: Day -> String
 dayToString = intercalate "-" . map show . toList . toGregorian
