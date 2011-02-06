@@ -38,12 +38,15 @@ xtdo ["l"]      tasks today = (tasks, [Today])
 xtdo ["l", "a"] tasks today = (tasks, [Today, Next, Scheduled])
 xtdo ("d":xs)   tasks today = ([x | x <- tasks, name x /= intercalate " " xs], [Today, Next])
 xtdo ("a":when:xs) tasks today
-  | when =~ "0d"     = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
-  | when =~ "[1-9]d" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
-  | otherwise        = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
+  | when =~ "0d?"     = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
+  | when =~ "[1-9]d?" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
+  | otherwise         = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
 
 -- TODO: Should return the actual day, rather than just a placeholder of today
-day today when = today
+day :: Day -> String -> Day
+day today when = offset `addDays` today
+  where   matches = head $ when =~ "([0-9])([d]?)" :: [String]
+          offset  = read $ matches !! 1
 
 makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
