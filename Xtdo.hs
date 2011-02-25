@@ -26,13 +26,14 @@ data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 data Task = Task { name :: String, scheduled :: Maybe Day, category :: TaskCategory } deriving(Show)
 
 addCategory tasks today = map (addCategoryToTask today) tasks
+  where
+    addCategoryToTask today Task{name=n,scheduled=Just s}
+      | s == today = Task{name=n,scheduled=Just s,category=Today}
+      | otherwise  = Task{name=n,scheduled=Just s,category=Scheduled}
 
-addCategoryToTask today Task{name=n,scheduled=Just s}
-  | s == today = Task{name=n,scheduled=Just s,category=Today}
-  | otherwise  = Task{name=n,scheduled=Just s,category=Scheduled}
+    addCategoryToTask today Task{name=n,scheduled=Nothing} 
+                 = Task{name=n,scheduled=Nothing,category=Next}
 
-addCategoryToTask today Task{name=n,scheduled=Nothing} 
-             = Task{name=n,scheduled=Nothing,category=Next}
 
 xtdo :: [String] -> [Task] -> Day -> ([Task], [TaskCategory])
 xtdo ["l"]      tasks today = (tasks, [Today])
@@ -42,8 +43,9 @@ xtdo ("a":when:xs) tasks today
   | when =~ "0d?"               = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
   | when =~ "([0-9]+)([dwmy]?)" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
   | otherwise                   = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
+  where
+    makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
--- TODO: Should return the actual day, rather than just a placeholder of today
 day :: Day -> String -> Day
 day today when = modifier today
   where   matches  = head $ (when =~ "([0-9]+)([dwmy]?)" :: [[String]])
@@ -58,7 +60,6 @@ day today when = modifier today
           charToModifier "y" = addGregorianYearsClip
           charToModifier other = error other
 
-makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
 finish (tasks, categoriesToDisplay) = do
   encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
@@ -66,23 +67,22 @@ finish (tasks, categoriesToDisplay) = do
   where output = flatten [ [formatCategory c] ++ 
                            [formatTask t | t <- tasks, category t == c]
                          | c <- categoriesToDisplay]
+        formatCategory :: TaskCategory -> String
+        formatCategory x = "\n==== " ++ show x ++ "\n"
+
+        formatTask :: Task -> String
+        formatTask x = "  " ++ name x
+
+        toYaml Task{name=x, scheduled=Nothing}   = 
+          Mapping [("name", Scalar x)]
+        toYaml Task{name=x, scheduled=Just when} = 
+          Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
+          where dayToString :: Day -> String
+                dayToString = intercalate "-" . map show . toList . toGregorian
+                  where toList (a,b,c) = [a, toInteger b, toInteger c]
+
 
 flatten = foldl (++) [] -- Surely this is in the stdlib?
-
-formatCategory :: TaskCategory -> String
-formatCategory x = "\n==== " ++ show x ++ "\n"
-
-formatTask :: Task -> String
-formatTask x = "  " ++ name x
-
-toYaml Task{name=x, scheduled=Nothing}   = Mapping [("name", Scalar x)]
-toYaml Task{name=x, scheduled=Just when} = Mapping [("name", Scalar x),       
-                                                    ("scheduled", Scalar $ dayToString when)]
-
-dayToString :: Day -> String
-dayToString = intercalate "-" . map show . toList . toGregorian
-
-toList (a,b,c) = [a, toInteger b, toInteger c]
 
 loadYaml = do
   object <- join $ decodeFile "tasks.yml"
