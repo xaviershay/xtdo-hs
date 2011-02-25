@@ -10,4 +10,4 @@ Build-Depends:       base >= 4,time,data-object,data-object-yaml,regex-posix,fai
 build-type:          Simple
 
 Executable:          xtdo
-Main-is:             Xtdo.hs
+Main-is:             Xtdo/Console.hs

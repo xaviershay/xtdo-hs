@@ -13,15 +13,6 @@ import Control.Failure
 
 import Text.Regex.Posix
 
--- 'main' runs the main program
-amain :: IO ()
-amain = do
-  args <- getArgs
-  tasks <- loadYaml
-  now <- getCurrentTime
-  let today = (utctDay now)
-  finish $ xtdo args (addCategory tasks today) today
-
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 data Task = Task { name :: String, scheduled :: Maybe Day, category :: TaskCategory } deriving(Show)
 
