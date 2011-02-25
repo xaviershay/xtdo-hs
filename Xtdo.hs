@@ -14,7 +14,18 @@ import Control.Failure
 import Text.Regex.Posix
 
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
-data Task = Task { name :: String, scheduled :: Maybe Day, category :: TaskCategory } deriving(Show)
+data Task = Task { name :: String, scheduled :: Maybe Day, category :: TaskCategory } deriving(Show, Eq)
+
+xtdo :: [String] -> [Task] -> Day -> ([Task], [TaskCategory])
+xtdo ["l"]      tasks _ = (tasks, [Today])
+xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled])
+xtdo ("d":xs)   tasks _ = ([task | task <- tasks, name task /= intercalate " " xs], [Today, Next])
+xtdo ("a":when:xs) tasks today
+  | when =~ "0d?"               = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
+  | when =~ "([0-9]+)([dwmy]?)" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
+  | otherwise                   = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
+  where
+    makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
 addCategory tasks today = map (addCategoryToTask today) tasks
   where
@@ -25,17 +36,6 @@ addCategory tasks today = map (addCategoryToTask today) tasks
     addCategoryToTask today Task{name=n,scheduled=Nothing} 
                  = Task{name=n,scheduled=Nothing,category=Next}
 
-
-xtdo :: [String] -> [Task] -> Day -> ([Task], [TaskCategory])
-xtdo ["l"]      tasks today = (tasks, [Today])
-xtdo ["l", "a"] tasks today = (tasks, [Today, Next, Scheduled])
-xtdo ("d":xs)   tasks today = ([x | x <- tasks, name x /= intercalate " " xs], [Today, Next])
-xtdo ("a":when:xs) tasks today
-  | when =~ "0d?"               = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
-  | when =~ "([0-9]+)([dwmy]?)" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
-  | otherwise                   = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
-  where
-    makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
 day :: Day -> String -> Day
 day today when = modifier today
