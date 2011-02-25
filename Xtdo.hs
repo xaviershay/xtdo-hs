@@ -1,3 +1,4 @@
+module Xtdo where
 import System.Environment
 import Data.Time.Calendar
 import Data.Time.Clock
@@ -13,8 +14,8 @@ import Control.Failure
 import Text.Regex.Posix
 
 -- 'main' runs the main program
-main :: IO ()
-main = do
+amain :: IO ()
+amain = do
   args <- getArgs
   tasks <- loadYaml
   now <- getCurrentTime
@@ -38,15 +39,24 @@ xtdo ["l"]      tasks today = (tasks, [Today])
 xtdo ["l", "a"] tasks today = (tasks, [Today, Next, Scheduled])
 xtdo ("d":xs)   tasks today = ([x | x <- tasks, name x /= intercalate " " xs], [Today, Next])
 xtdo ("a":when:xs) tasks today
-  | when =~ "0d?"     = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
-  | when =~ "[1-9]d?" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
-  | otherwise         = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
+  | when =~ "0d?"               = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
+  | when =~ "([0-9]+)([dwmy]?)" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
+  | otherwise                   = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
 
 -- TODO: Should return the actual day, rather than just a placeholder of today
 day :: Day -> String -> Day
-day today when = offset `addDays` today
-  where   matches = head $ when =~ "([0-9])([d]?)" :: [String]
-          offset  = read $ matches !! 1
+day today when = modifier today
+  where   matches  = head $ (when =~ "([0-9]+)([dwmy]?)" :: [[String]])
+          offset   = read $ (matches !! 1)
+          modifier = charToModifier (matches !! 2) offset
+
+          -- Converts a char into a function that will transform a date by the given offset
+          charToModifier :: String -> (Integer -> Day -> Day)
+          charToModifier "d" = addDays
+          charToModifier "w" = addDays . (* 7)
+          charToModifier "m" = addGregorianMonthsClip
+          charToModifier "y" = addGregorianYearsClip
+          charToModifier other = error other
 
 makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
