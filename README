@@ -1,1 +1,9 @@
-Nothing to see here folks, move right along...
+A haskell port of https://github.com/xaviershay/xtdo
+
+It doesn't work yet and it's my first haskell project. Here be dragons.
+
+    cabal configure
+    cabal build
+    dist/build/xtdo/xtdo l  # Run the app
+
+    runhaskell Xtdo_Test.hs # Run tests
