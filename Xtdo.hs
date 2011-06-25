@@ -14,16 +14,28 @@ import Control.Failure
 import Text.Regex.Posix
 
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
-data Task = Task { name :: String, scheduled :: Maybe Day, category :: TaskCategory } deriving(Show, Eq)
+data Task = Task {
+  name      :: String,
+  scheduled :: Maybe Day,
+  category  :: TaskCategory
+} deriving(Show, Eq)
 
 xtdo :: [String] -> [Task] -> Day -> ([Task], [TaskCategory])
 xtdo ["l"]      tasks _ = (tasks, [Today])
 xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled])
-xtdo ("d":xs)   tasks _ = ([task | task <- tasks, name task /= intercalate " " xs], [Today, Next])
+
+xtdo ("d":xs)   tasks _ = ([task | task <- tasks, name task /= intercalate " " xs],
+                           [Today, Next])
 xtdo ("a":when:xs) tasks today
-  | when =~ "0d?"               = (tasks ++ [makeTask xs             (Just $ day today when) Today],     [Today])
-  | when =~ "([0-9]+)([dwmy]?)" = (tasks ++ [makeTask xs             (Just $ day today when) Scheduled], [Scheduled])
-  | otherwise                   = (tasks ++ [makeTask ([when] ++ xs) Nothing                 Next],      [Next])
+  | when =~ "0d?"               = (tasks ++
+                                   [makeTask xs (Just $ day today when) Today],
+                                   [Today])
+  | when =~ "([0-9]+)([dwmy]?)" = (tasks ++
+                                   [makeTask xs (Just $ day today when) Scheduled],
+                                   [Scheduled])
+  | otherwise                   = (tasks ++
+                                   [makeTask ([when] ++ xs) Nothing Next],
+                                   [Next])
   where
     makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
@@ -33,7 +45,7 @@ addCategory tasks today = map (addCategoryToTask today) tasks
       | s == today = Task{name=n,scheduled=Just s,category=Today}
       | otherwise  = Task{name=n,scheduled=Just s,category=Scheduled}
 
-    addCategoryToTask today Task{name=n,scheduled=Nothing} 
+    addCategoryToTask today Task{name=n,scheduled=Nothing}
                  = Task{name=n,scheduled=Nothing,category=Next}
 
 
@@ -43,7 +55,8 @@ day today when = modifier today
           offset   = read $ (matches !! 1)
           modifier = charToModifier (matches !! 2) offset
 
-          -- Converts a char into a function that will transform a date by the given offset
+          -- Converts a char into a function that will transform a date
+          -- by the given offset
           charToModifier :: String -> (Integer -> Day -> Day)
           charToModifier ""  = addDays
           charToModifier "d" = addDays
@@ -56,7 +69,7 @@ day today when = modifier today
 finish (tasks, categoriesToDisplay) = do
   encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
   putStrLn $ intercalate "\n" output ++ "\n"
-  where output = flatten [ [formatCategory c] ++ 
+  where output = flatten [ [formatCategory c] ++
                            [formatTask t | t <- tasks, category t == c]
                          | c <- categoriesToDisplay]
         formatCategory :: TaskCategory -> String
@@ -65,9 +78,9 @@ finish (tasks, categoriesToDisplay) = do
         formatTask :: Task -> String
         formatTask x = "  " ++ name x
 
-        toYaml Task{name=x, scheduled=Nothing}   = 
+        toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
-        toYaml Task{name=x, scheduled=Just when} = 
+        toYaml Task{name=x, scheduled=Just when} =
           Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
           where dayToString :: Day -> String
                 dayToString = intercalate "-" . map show . toList . toGregorian
@@ -88,13 +101,12 @@ extractTask task = do
   return Task{name=n, scheduled=toDay s, category=Next}
 
 toDay Nothing = Nothing
-toDay (Just str) = 
+toDay (Just str) =
   Just $ fromGregorian (toInteger $ x!!0) (x!!1) (x!!2)
   where x = (map read $ splitOn "-" str :: [Int])
 
 testTasks = [Task{ name="do something", scheduled=Nothing, category=Today}]
--- 
---
+
 -- Each command returns:
 --   The task data structure to be persisted
 --   The types of tasks to be displayed
