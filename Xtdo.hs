@@ -45,6 +45,7 @@ day today when = modifier today
 
           -- Converts a char into a function that will transform a date by the given offset
           charToModifier :: String -> (Integer -> Day -> Day)
+          charToModifier ""  = addDays
           charToModifier "d" = addDays
           charToModifier "w" = addDays . (* 7)
           charToModifier "m" = addGregorianMonthsClip

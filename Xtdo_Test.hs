@@ -3,7 +3,6 @@ import Xtdo
 import Test.HUnit
 import Data.Time.Calendar
 
--- NEXT: Add tests for "a", probably should move addCategory inside xtdo function
 -- NEXT: QuickCheck + Tasks probably can do something cool
 
 d = fromGregorian
@@ -20,6 +19,18 @@ xtdoTests =
 
   , "d removes any task that matches the given name" ~:
     [chaff] ~=? (fst $ xtdo["d", "mytask"] tasks today)
+
+  , "a adds a new unscheduled task" ~:
+    [Task{name="newtask", scheduled=Nothing, category=Next}] ~=?
+      (fst $ xtdo["a", "newtask"] [] today)
+
+  , "a adds a new scheduled task for today" ~:
+    [Task{name="newtask", scheduled=Just today, category=Today}] ~=?
+      (fst $ xtdo["a", "0", "newtask"] [] today)
+
+  , "a adds a new scheduled task for tomorrow" ~:
+    [Task{name="newtask", scheduled=Just tomorrow, category=Scheduled}] ~=?
+      (fst $ xtdo["a", "1", "newtask"] [] today)
   ]
   where tasks =
           [ Task{name="mytask", scheduled=Nothing, category=Next}
@@ -27,6 +38,7 @@ xtdoTests =
           ]
         chaff = Task{name="chaff",  scheduled=Nothing, category=Next}
         today = (d 2011 1 1)
+        tomorrow = (d 2011 1 2)
 
 dayTests =
   [ t "1d"  (d 2011 2 2)
@@ -35,6 +47,7 @@ dayTests =
   , t "1w"  (d 2011 2 8)
   , t "1m"  (d 2011 3 1)
   , t "1y"  (d 2012 2 1)
+  , t "0"   (d 2011 2 1)
   ]
   where t str expected = "Xtdo.day parses " ++ str ~:
                             expected ~=? (day today str)
