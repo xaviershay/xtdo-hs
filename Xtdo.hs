@@ -28,7 +28,9 @@ xtdo ["l"]      tasks _ = (tasks, [Today], PrettyFormatter)
 xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
 xtdo ["l", "c"] tasks _ = (tasks, [Today, Next, Scheduled], CompletionFormatter)
 
-xtdo ("d":xs)   tasks _ = ([task | task <- tasks, name task /= intercalate " " xs],
+xtdo ("d":xs)   tasks _ = ([task | task <- tasks, 
+                             hyphenize (name task) /= hyphenize (intercalate "-" xs)
+                           ],
                            [Today, Next],
                            PrettyFormatter)
 xtdo ("a":when:xs) tasks today
@@ -90,9 +92,11 @@ prettyFormatter (tasks, categoriesToDisplay) = do
 
 completionFormatter (tasks, categoriesToDisplay) = do
   forM [t | t <- tasks] (\task -> do
-    putStrLn $ subRegex (mkRegex "[^a-zA-Z0-9]") (name task) "-"
+    putStrLn $ hyphenize (name task)
     )
   putStr ""
+
+hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
 finish (tasks, categoriesToDisplay, formatter) = do
   encodeFile "tasks.yml" $ Sequence $ map toYaml tasks

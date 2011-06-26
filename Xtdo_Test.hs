@@ -18,10 +18,13 @@ xtdoTests =
     (tasks, [Today, Next, Scheduled], CompletionFormatter) ~=? (xtdo ["l", "c"] tasks today)
 
   , "d shows only today and next" ~:
-    [Today, Next] ~=? (extractCategories $ xtdo ["d", "mytask"] tasks today)
+    [Today, Next] ~=? (extractCategories $ xtdo ["d", "my task"] tasks today)
 
   , "d removes any task that matches the given name" ~:
-    [chaff] ~=? (extractTasks $ xtdo["d", "mytask"] tasks today)
+    [chaff] ~=? (extractTasks $ xtdo["d", "my task"] tasks today)
+
+  , "d removes any task that matches the given name with hyphens" ~:
+    [chaff] ~=? (extractTasks $ xtdo["d", "my-task"] tasks today)
 
   , "a adds a new unscheduled task" ~:
     [Task{name="newtask", scheduled=Nothing, category=Next}] ~=?
@@ -36,7 +39,7 @@ xtdoTests =
       (extractTasks $ xtdo["a", "1", "newtask"] [] today)
   ]
   where tasks =
-          [ Task{name="mytask", scheduled=Nothing, category=Next}
+          [ Task{name="my task", scheduled=Nothing, category=Next}
           , chaff
           ]
         chaff = Task{name="chaff",  scheduled=Nothing, category=Next}
