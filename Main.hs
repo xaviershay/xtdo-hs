@@ -1,4 +1,3 @@
-module Xtdo.Console where
 import Xtdo
 
 import System.Environment
@@ -11,4 +10,3 @@ main = do
   now <- getCurrentTime
   let today = (utctDay now)
   finish $ xtdo args (addCategory tasks today) today
-
