@@ -1,5 +1,7 @@
 module Xtdo where
 import System.Environment
+import System.Console.ANSI
+
 import Data.Time.Calendar
 import Data.Time.Clock
 import Data.List
@@ -68,12 +70,21 @@ day today when = modifier today
 
 finish (tasks, categoriesToDisplay) = do
   encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
-  putStrLn $ intercalate "\n" output ++ "\n"
-  where output = flatten [ [formatCategory c] ++
-                           [formatTask t | t <- tasks, category t == c]
-                         | c <- categoriesToDisplay]
-        formatCategory :: TaskCategory -> String
-        formatCategory x = "\n==== " ++ show x ++ "\n"
+  forM categoriesToDisplay (\c -> do
+    putStrLn ""
+
+    setSGR [ SetColor Foreground Dull Yellow ]
+    putStrLn $ formatCategory c
+    putStrLn ""
+
+    setSGR [Reset]
+    forM [t | t <- tasks, category t == c] (\task -> do
+      putStrLn $ formatTask task
+      )
+    )
+  putStrLn ""
+  where formatCategory :: TaskCategory -> String
+        formatCategory x = "==== " ++ show x
 
         formatTask :: Task -> String
         formatTask x = "  " ++ name x
