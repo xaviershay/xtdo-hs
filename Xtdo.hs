@@ -14,6 +14,7 @@ import Control.Monad
 import Control.Failure
 
 import Text.Regex.Posix
+import Text.Regex(subRegex, mkRegex)
 
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 data Task = Task {
@@ -21,10 +22,11 @@ data Task = Task {
   scheduled :: Maybe Day,
   category  :: TaskCategory
 } deriving(Show, Eq)
-data Formatter = PrettyFormatter deriving(Show, Eq)
+data Formatter = PrettyFormatter | CompletionFormatter deriving(Show, Eq)
 
 xtdo ["l"]      tasks _ = (tasks, [Today], PrettyFormatter)
 xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
+xtdo ["l", "c"] tasks _ = (tasks, [Today, Next, Scheduled], CompletionFormatter)
 
 xtdo ("d":xs)   tasks _ = ([task | task <- tasks, name task /= intercalate " " xs],
                            [Today, Next],
@@ -86,10 +88,17 @@ prettyFormatter (tasks, categoriesToDisplay) = do
     )
   putStrLn ""
 
+completionFormatter (tasks, categoriesToDisplay) = do
+  forM [t | t <- tasks] (\task -> do
+    putStrLn $ subRegex (mkRegex "[^a-zA-Z0-9]") (name task) "-"
+    )
+  putStr ""
+
 finish (tasks, categoriesToDisplay, formatter) = do
   encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
   doFormatting formatter (tasks, categoriesToDisplay)
   where doFormatting PrettyFormatter     = prettyFormatter
+        doFormatting CompletionFormatter = completionFormatter
         toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
         toYaml Task{name=x, scheduled=Just when} =

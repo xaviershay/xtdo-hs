@@ -6,7 +6,7 @@ License:             MIT
 License-file:        LICENSE
 Author:              Xavier Shay
 Maintainer:          Xavier Shay <contact@rhnh.net>
-Build-Depends:       base >= 4,time,data-object,data-object-yaml,regex-posix,failure,split,ansi-terminal
+Build-Depends:       base >= 4,time,data-object,data-object-yaml,regex-posix,failure,split,ansi-terminal,regex-compat
 build-type:          Simple
 
 Executable:          xtdo
