@@ -14,6 +14,7 @@ import Control.Monad
 import Control.Failure
 
 import Text.Regex.Posix
+import Text.Regex(subRegex, mkRegex)
 
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 data Task = Task {
@@ -21,23 +22,30 @@ data Task = Task {
   scheduled :: Maybe Day,
   category  :: TaskCategory
 } deriving(Show, Eq)
+data Formatter = PrettyFormatter | CompletionFormatter deriving(Show, Eq)
 
-xtdo :: [String] -> [Task] -> Day -> ([Task], [TaskCategory])
-xtdo ["l"]      tasks _ = (tasks, [Today])
-xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled])
+xtdo ["l"]      tasks _ = (tasks, [Today], PrettyFormatter)
+xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
+xtdo ["l", "c"] tasks _ = (tasks, [Today, Next, Scheduled], CompletionFormatter)
 
-xtdo ("d":xs)   tasks _ = ([task | task <- tasks, name task /= intercalate " " xs],
-                           [Today, Next])
+xtdo ("d":xs)   tasks _ = ([task | task <- tasks, 
+                             hyphenize (name task) /= hyphenize (intercalate "-" xs)
+                           ],
+                           [Today, Next],
+                           PrettyFormatter)
 xtdo ("a":when:xs) tasks today
   | when =~ "0d?"               = (tasks ++
                                    [makeTask xs (Just $ day today when) Today],
-                                   [Today])
+                                   [Today],
+                                   PrettyFormatter)
   | when =~ "([0-9]+)([dwmy]?)" = (tasks ++
                                    [makeTask xs (Just $ day today when) Scheduled],
-                                   [Scheduled])
+                                   [Scheduled],
+                                   PrettyFormatter)
   | otherwise                   = (tasks ++
                                    [makeTask ([when] ++ xs) Nothing Next],
-                                   [Next])
+                                   [Next],
+                                   PrettyFormatter)
   where
     makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
@@ -67,9 +75,7 @@ day today when = modifier today
           charToModifier "y" = addGregorianYearsClip
           charToModifier other = error other
 
-
-finish (tasks, categoriesToDisplay) = do
-  encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
+prettyFormatter (tasks, categoriesToDisplay) = do
   forM categoriesToDisplay (\currentCategory -> do
     putStrLn ""
 
@@ -83,7 +89,21 @@ finish (tasks, categoriesToDisplay) = do
       )
     )
   putStrLn ""
-  where toYaml Task{name=x, scheduled=Nothing}   =
+
+completionFormatter (tasks, categoriesToDisplay) = do
+  forM [t | t <- tasks] (\task -> do
+    putStrLn $ hyphenize (name task)
+    )
+  putStr ""
+
+hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
+
+finish (tasks, categoriesToDisplay, formatter) = do
+  encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
+  doFormatting formatter (tasks, categoriesToDisplay)
+  where doFormatting PrettyFormatter     = prettyFormatter
+        doFormatting CompletionFormatter = completionFormatter
+        toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
         toYaml Task{name=x, scheduled=Just when} =
           Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
