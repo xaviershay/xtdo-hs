@@ -70,26 +70,20 @@ day today when = modifier today
 
 finish (tasks, categoriesToDisplay) = do
   encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
-  forM categoriesToDisplay (\c -> do
+  forM categoriesToDisplay (\currentCategory -> do
     putStrLn ""
 
     setSGR [ SetColor Foreground Dull Yellow ]
-    putStrLn $ formatCategory c
+    putStrLn $ "==== " ++ show currentCategory
     putStrLn ""
 
     setSGR [Reset]
-    forM [t | t <- tasks, category t == c] (\task -> do
-      putStrLn $ formatTask task
+    forM [t | t <- tasks, category t == currentCategory] (\task -> do
+      putStrLn $ "  " ++ name task
       )
     )
   putStrLn ""
-  where formatCategory :: TaskCategory -> String
-        formatCategory x = "==== " ++ show x
-
-        formatTask :: Task -> String
-        formatTask x = "  " ++ name x
-
-        toYaml Task{name=x, scheduled=Nothing}   =
+  where toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
         toYaml Task{name=x, scheduled=Just when} =
           Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
