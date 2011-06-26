@@ -21,23 +21,27 @@ data Task = Task {
   scheduled :: Maybe Day,
   category  :: TaskCategory
 } deriving(Show, Eq)
+data Formatter = PrettyFormatter deriving(Show, Eq)
 
-xtdo :: [String] -> [Task] -> Day -> ([Task], [TaskCategory])
-xtdo ["l"]      tasks _ = (tasks, [Today])
-xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled])
+xtdo ["l"]      tasks _ = (tasks, [Today], PrettyFormatter)
+xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
 
 xtdo ("d":xs)   tasks _ = ([task | task <- tasks, name task /= intercalate " " xs],
-                           [Today, Next])
+                           [Today, Next],
+                           PrettyFormatter)
 xtdo ("a":when:xs) tasks today
   | when =~ "0d?"               = (tasks ++
                                    [makeTask xs (Just $ day today when) Today],
-                                   [Today])
+                                   [Today],
+                                   PrettyFormatter)
   | when =~ "([0-9]+)([dwmy]?)" = (tasks ++
                                    [makeTask xs (Just $ day today when) Scheduled],
-                                   [Scheduled])
+                                   [Scheduled],
+                                   PrettyFormatter)
   | otherwise                   = (tasks ++
                                    [makeTask ([when] ++ xs) Nothing Next],
-                                   [Next])
+                                   [Next],
+                                   PrettyFormatter)
   where
     makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
 
@@ -67,9 +71,7 @@ day today when = modifier today
           charToModifier "y" = addGregorianYearsClip
           charToModifier other = error other
 
-
-finish (tasks, categoriesToDisplay) = do
-  encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
+prettyFormatter (tasks, categoriesToDisplay) = do
   forM categoriesToDisplay (\currentCategory -> do
     putStrLn ""
 
@@ -83,7 +85,12 @@ finish (tasks, categoriesToDisplay) = do
       )
     )
   putStrLn ""
-  where toYaml Task{name=x, scheduled=Nothing}   =
+
+finish (tasks, categoriesToDisplay, formatter) = do
+  encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
+  doFormatting formatter (tasks, categoriesToDisplay)
+  where doFormatting PrettyFormatter     = prettyFormatter
+        toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
         toYaml Task{name=x, scheduled=Just when} =
           Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]

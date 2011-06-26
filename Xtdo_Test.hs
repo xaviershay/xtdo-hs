@@ -9,28 +9,31 @@ d = fromGregorian
 
 xtdoTests =
   [ "l only shows Today" ~:
-    (tasks, [Today]) ~=? (xtdo ["l"] tasks today)
+    (tasks, [Today], PrettyFormatter) ~=? (xtdo ["l"] tasks today)
 
   , "l a shows all tasks" ~:
-    (tasks, [Today, Next, Scheduled]) ~=? (xtdo ["l", "a"] tasks today)
+    (tasks, [Today, Next, Scheduled], PrettyFormatter) ~=? (xtdo ["l", "a"] tasks today)
+
+  , "l c shows all tasks" ~:
+    (tasks, [Today, Next, Scheduled], CompletionFormatter) ~=? (xtdo ["l", "c"] tasks today)
 
   , "d shows only today and next" ~:
-    [Today, Next] ~=? (snd $ xtdo ["d", "mytask"] tasks today)
+    [Today, Next] ~=? (extractCategories $ xtdo ["d", "mytask"] tasks today)
 
   , "d removes any task that matches the given name" ~:
-    [chaff] ~=? (fst $ xtdo["d", "mytask"] tasks today)
+    [chaff] ~=? (extractTasks $ xtdo["d", "mytask"] tasks today)
 
   , "a adds a new unscheduled task" ~:
     [Task{name="newtask", scheduled=Nothing, category=Next}] ~=?
-      (fst $ xtdo["a", "newtask"] [] today)
+      (extractTasks $ xtdo["a", "newtask"] [] today)
 
   , "a adds a new scheduled task for today" ~:
     [Task{name="newtask", scheduled=Just today, category=Today}] ~=?
-      (fst $ xtdo["a", "0", "newtask"] [] today)
+      (extractTasks $ xtdo["a", "0", "newtask"] [] today)
 
   , "a adds a new scheduled task for tomorrow" ~:
     [Task{name="newtask", scheduled=Just tomorrow, category=Scheduled}] ~=?
-      (fst $ xtdo["a", "1", "newtask"] [] today)
+      (extractTasks $ xtdo["a", "1", "newtask"] [] today)
   ]
   where tasks =
           [ Task{name="mytask", scheduled=Nothing, category=Next}
@@ -39,6 +42,9 @@ xtdoTests =
         chaff = Task{name="chaff",  scheduled=Nothing, category=Next}
         today = (d 2011 1 1)
         tomorrow = (d 2011 1 2)
+        extractTasks (x, y, z) = x
+        extractCategories (x, y, z) = y
+        extractFormatter (x, y, z) = z
 
 dayTests =
   [ t "1d"  (d 2011 2 1)  (d 2011 2 2)
