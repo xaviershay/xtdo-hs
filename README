@@ -1,6 +1,6 @@
 A haskell port of https://github.com/xaviershay/xtdo
-
-It doesn't work yet and it's my first haskell project. Here be dragons.
+It does everything except for recurring tasks.
+I don't use it yet.
 
     cabal configure
     cabal build
