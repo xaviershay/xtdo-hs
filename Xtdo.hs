@@ -36,25 +36,25 @@ data ProgramData = ProgramData {
 blankTask = Task{name="", scheduled=Nothing, category=Next}
 data Formatter = PrettyFormatter | CompletionFormatter deriving(Show, Eq)
 
-xtdo ["l"]      ProgramData{tasks=tasks} _ = (tasks, [Today], PrettyFormatter)
-xtdo ["l", "a"] ProgramData{tasks=tasks} _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
-xtdo ["l", "c"] ProgramData{tasks=tasks} _ = (tasks, [Today, Next, Scheduled], CompletionFormatter)
+xtdo ["l"]      x _ = (tasks x, [Today], PrettyFormatter)
+xtdo ["l", "a"] x _ = (tasks x, [Today, Next, Scheduled], PrettyFormatter)
+xtdo ["l", "c"] x _ = (tasks x, [Today, Next, Scheduled], CompletionFormatter)
 
-xtdo ("d":xs)   ProgramData{tasks=tasks} _ = ([task | task <- tasks,
+xtdo ("d":xs)   x _ = ([task | task <- tasks x,
                              hyphenize (name task) /= hyphenize (intercalate "-" xs)
                            ],
                            [Today, Next],
                            PrettyFormatter)
-xtdo ("a":when:xs) ProgramData{tasks=tasks} today
-  | when =~ "0d?"               = (tasks ++
+xtdo ("a":when:xs) x today
+  | when =~ "0d?"               = (tasks x ++
                                    [makeTask xs (Just $ day today when) Today],
                                    [Today],
                                    PrettyFormatter)
-  | when =~ "([0-9]+)([dwmy]?)" = (tasks ++
+  | when =~ "([0-9]+)([dwmy]?)" = (tasks x ++
                                    [makeTask xs (Just $ day today when) Scheduled],
                                    [Scheduled],
                                    PrettyFormatter)
-  | otherwise                   = (tasks ++
+  | otherwise                   = (tasks x ++
                                    [makeTask ([when] ++ xs) Nothing Next],
                                    [Next],
                                    PrettyFormatter)
