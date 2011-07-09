@@ -6,8 +6,9 @@ import Data.Time.Calendar
 -- NEXT: QuickCheck + Tasks probably can do something cool
 
 d = fromGregorian
+noData = ProgramData{recurring=[],tasks=[]}
 
-xtdoTests =
+xtdoTaskTests =
   [ "l only shows Today" ~:
     (testTasks, PrettyFormatter [Today]) ~=?
       (run ["l"] testTasks)
@@ -42,17 +43,34 @@ xtdoTests =
     [blankTask{name="newtask", scheduled=Just tomorrow, category=Scheduled}] ~=?
       (extractTasks $ run ["a", "1", "newtask"] noData)
   ]
-  where testTasks = ProgramData{recurring=[],tasks=
+  where testTasks = noData{tasks=
           [ blankTask{name="my task"}
           , chaff
           ]}
-        noData = ProgramData{recurring=[],tasks=[]}
         run args programData = xtdo args programData today
         chaff = blankTask{name="chaff"}
         today = (d 2011 1 1)
         tomorrow = (d 2011 1 2)
         extractTasks (x, y) = tasks x
         extractCategories (x, y) = y
+
+xtdoRecurTests = 
+  [ "l shows all recurring" ~:
+    (testData, RecurringFormatter) ~=?
+      (run ["l"] testData)
+  , "a adds a new daily one" ~:
+    [RecurringTaskDefinition{
+      templateName="newtask",
+      frequency=(RecurFrequency Daily 1 0),
+      nextOccurrence=tomorrow}] ~=?
+      (extractRecurring $ run ["a", "1d", "newtask"] noData)
+  ]
+  where run args programData = xtdo (["r"] ++ args) programData today
+        testData = noData
+        today = (d 2011 1 1)
+        tomorrow = (d 2011 1 2)
+        extractRecurring (x, y) = recurring x
+
 
 dayTests =
   [ t "1d"  (d 2011 2 1)  (d 2011 2 2)
@@ -71,4 +89,4 @@ dayTests =
   where t str from expected = "Xtdo.day parses " ++ str ~:
                                 expected ~=? (day from str)
 
-main = runTestTT $ TestList ( xtdoTests ++ dayTests )
+main = runTestTT $ TestList ( xtdoTaskTests ++ xtdoRecurTests ++ dayTests )

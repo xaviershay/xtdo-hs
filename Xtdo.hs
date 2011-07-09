@@ -25,9 +25,9 @@ data Task = Task {
 data RecurringTaskDefinition = RecurringTaskDefinition {
   -- ideally this would be 'name' but haskell doesn't like the collision with
   -- Task.name
-  templateName :: String,
-  next         :: Day,
-  period       :: String -- TODO: Better type definition
+  templateName   :: String,
+  nextOccurrence :: Day,
+  frequency      :: RecurFrequency
 } deriving (Show, Eq)
 data ProgramData = ProgramData {
   tasks     :: [Task],
@@ -39,11 +39,27 @@ data Formatter = PrettyFormatter     [TaskCategory] |
                  RecurringFormatter
                  deriving (Show, Eq)
 
+data RecurInterval   = Daily | Weekly | Monthly | Yearly deriving (Show, Eq)
+type RecurMultiplier = Integer
+type RecurOffset     = Integer
+
+data RecurFrequency = RecurFrequency RecurInterval RecurMultiplier RecurOffset deriving (Show, Eq)
+
 xtdo :: [String] -> ProgramData -> Day -> (ProgramData, Formatter)
 xtdo ["l"]      x _ = (x, PrettyFormatter [Today])
 xtdo ["l", "a"] x _ = (x, PrettyFormatter [Today, Next, Scheduled])
 xtdo ["l", "c"] x _ = (x, CompletionFormatter [Today, Next, Scheduled])
 xtdo ["r", "l"] x _ = (x, RecurringFormatter)
+xtdo ("r":"a":frequency:xs) x today =
+  (addRecurring x (makeRecurring xs (parseFrequency frequency)), RecurringFormatter)
+  where makeRecurring name frequency = RecurringTaskDefinition{
+                                         frequency=frequency,
+                                         templateName=intercalate " " name,
+                                         nextOccurrence=(addDays 1 today)}
+        addRecurring programData definition = ProgramData{
+                                                tasks=tasks programData,
+                                                recurring=(recurring programData) ++
+                                                          [definition]}
 xtdo ("d":xs)   x _ = (replaceTasks x [task | task <- tasks x,
                            hyphenize (name task) /= hyphenize (intercalate "-" xs)
                          ],
@@ -69,6 +85,9 @@ addCategory tasks today = map (addCategoryToTask today) tasks
     addCategoryToTask today Task{name=n,scheduled=Nothing}
                  = blankTask{name=n,scheduled=Nothing,category=Next}
 
+
+parseFrequency :: String -> RecurFrequency
+parseFrequency x = RecurFrequency Daily 1 0
 
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
 
