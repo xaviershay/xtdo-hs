@@ -101,7 +101,8 @@ completionFormatter (tasks, categoriesToDisplay) = do
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
 finish (tasks, categoriesToDisplay, formatter) = do
-  encodeFile "tasks.yml" $ Sequence $ map toYaml tasks
+  encodeFile "tasks.yml" $ Mapping 
+    [ ("tasks", Sequence $ map toYaml tasks) ]
   doFormatting formatter (tasks, categoriesToDisplay)
   where doFormatting PrettyFormatter     = prettyFormatter
         doFormatting CompletionFormatter = completionFormatter
@@ -118,7 +119,9 @@ flatten = foldl (++) [] -- Surely this is in the stdlib?
 
 loadYaml = do
   object <- join $ decodeFile "tasks.yml"
-  tasks <- fromSequence object >>= mapM extractTask
+  mappings <- fromMapping object
+  tasksSequence <- lookupSequence "tasks" mappings
+  tasks <- mapM extractTask tasksSequence -- >>= mapM extractTask
   return tasks
 
 extractTask task = do
