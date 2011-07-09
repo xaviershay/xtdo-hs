@@ -28,39 +28,36 @@ data RecurringTaskDefinition = RecurringTaskDefinition {
   template_name :: String,
   next          :: Day,
   period        :: String -- TODO: Better type definition
-}
+} deriving (Show, Eq)
 data ProgramData = ProgramData {
   tasks     :: [Task],
   recurring :: [RecurringTaskDefinition]
-}
+} deriving (Show, Eq)
 blankTask = Task{name="", scheduled=Nothing, category=Next}
-data Formatter = PrettyFormatter | CompletionFormatter deriving(Show, Eq)
+data Formatter = PrettyFormatter     [TaskCategory] |
+                 CompletionFormatter [TaskCategory]
+                 deriving (Show, Eq)
 
-xtdo ["l"]      x _ = (tasks x, [Today], PrettyFormatter)
-xtdo ["l", "a"] x _ = (tasks x, [Today, Next, Scheduled], PrettyFormatter)
-xtdo ["l", "c"] x _ = (tasks x, [Today, Next, Scheduled], CompletionFormatter)
-
-xtdo ("d":xs)   x _ = ([task | task <- tasks x,
-                             hyphenize (name task) /= hyphenize (intercalate "-" xs)
-                           ],
-                           [Today, Next],
-                           PrettyFormatter)
+xtdo :: [String] -> ProgramData -> Day -> (ProgramData, Formatter)
+xtdo ["l"]      x _ = (x, PrettyFormatter [Today])
+xtdo ["l", "a"] x _ = (x, PrettyFormatter [Today, Next, Scheduled])
+xtdo ["l", "c"] x _ = (x, CompletionFormatter [Today, Next, Scheduled])
+xtdo ("d":xs)   x _ = (replaceTasks x [task | task <- tasks x,
+                           hyphenize (name task) /= hyphenize (intercalate "-" xs)
+                         ],
+                         PrettyFormatter [Today, Next])
 xtdo ("a":when:xs) x today
-  | when =~ "0d?"               = (tasks x ++
-                                   [makeTask xs (Just $ day today when) Today],
-                                   [Today],
-                                   PrettyFormatter)
-  | when =~ "([0-9]+)([dwmy]?)" = (tasks x ++
-                                   [makeTask xs (Just $ day today when) Scheduled],
-                                   [Scheduled],
-                                   PrettyFormatter)
-  | otherwise                   = (tasks x ++
-                                   [makeTask ([when] ++ xs) Nothing Next],
-                                   [Next],
-                                   PrettyFormatter)
+  | when =~ "0d?"               = (replaceTasks x (tasks x ++
+                                   [makeTask xs (Just $ day today when) Today]),
+                                   PrettyFormatter [Today])
+  | when =~ "([0-9]+)([dwmy]?)" = (replaceTasks x (tasks x ++
+                                   [makeTask xs (Just $ day today when) Scheduled]),
+                                   PrettyFormatter [Scheduled])
+  | otherwise                   = (replaceTasks x (tasks x ++
+                                   [makeTask ([when] ++ xs) Nothing Next]),
+                                   PrettyFormatter [Next])
   where
     makeTask n s c = blankTask{name=intercalate " " n,scheduled=s,category=c}
-
 addCategory tasks today = map (addCategoryToTask today) tasks
   where
     addCategoryToTask today Task{name=n,scheduled=Just s}
@@ -70,6 +67,8 @@ addCategory tasks today = map (addCategoryToTask today) tasks
     addCategoryToTask today Task{name=n,scheduled=Nothing}
                  = blankTask{name=n,scheduled=Nothing,category=Next}
 
+
+replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
 
 day :: Day -> String -> Day
 day today when = modifier today
@@ -87,7 +86,7 @@ day today when = modifier today
           charToModifier "y" = addGregorianYearsClip
           charToModifier other = error other
 
-prettyFormatter (tasks, categoriesToDisplay) = do
+prettyFormatter categoriesToDisplay programData = do
   forM categoriesToDisplay (\currentCategory -> do
     putStrLn ""
 
@@ -96,26 +95,26 @@ prettyFormatter (tasks, categoriesToDisplay) = do
     putStrLn ""
 
     setSGR [Reset]
-    forM [t | t <- tasks, category t == currentCategory] (\task -> do
+    forM [t | t <- tasks programData, category t == currentCategory] (\task -> do
       putStrLn $ "  " ++ name task
       )
     )
   putStrLn ""
 
-completionFormatter (tasks, categoriesToDisplay) = do
-  forM [t | t <- tasks] (\task -> do
+completionFormatter categoriesToDisplay programData = do
+  forM [t | t <- tasks programData] (\task -> do
     putStrLn $ hyphenize (name task)
     )
   putStr ""
 
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
-finish (tasks, categoriesToDisplay, formatter) = do
+finish (programData, formatter) = do
   encodeFile "tasks.yml" $ Mapping
-    [ ("tasks", Sequence $ map toYaml tasks) ]
-  doFormatting formatter (tasks, categoriesToDisplay)
-  where doFormatting PrettyFormatter     = prettyFormatter
-        doFormatting CompletionFormatter = completionFormatter
+    [ ("tasks", Sequence $ map toYaml (tasks programData)) ]
+  doFormatting formatter programData
+  where doFormatting (PrettyFormatter x)     = prettyFormatter x
+        doFormatting (CompletionFormatter x) = completionFormatter x
         toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
         toYaml Task{name=x, scheduled=Just when} =

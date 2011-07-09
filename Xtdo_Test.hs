@@ -9,46 +9,50 @@ d = fromGregorian
 
 xtdoTests =
   [ "l only shows Today" ~:
-    (tasks, [Today], PrettyFormatter) ~=? (run ["l"] tasks)
+    (testTasks, PrettyFormatter [Today]) ~=?
+      (run ["l"] testTasks)
 
-  , "l a shows all tasks" ~:
-    (tasks, [Today, Next, Scheduled], PrettyFormatter) ~=? (run ["l", "a"] tasks)
+  , "l a shows all testTasks" ~:
+    (testTasks, PrettyFormatter [Today, Next, Scheduled]) ~=?
+      (run ["l", "a"] testTasks)
 
-  , "l c shows all tasks" ~:
-    (tasks, [Today, Next, Scheduled], CompletionFormatter) ~=? (run ["l", "c"] tasks)
+  , "l c shows all testTasks" ~:
+    (testTasks, CompletionFormatter [Today, Next, Scheduled]) ~=?
+      (run ["l", "c"] testTasks)
 
   , "d shows only today and next" ~:
-    [Today, Next] ~=? (extractCategories $ run ["d", "my task"] tasks)
+    PrettyFormatter [Today, Next] ~=?
+      (extractCategories $ run ["d", "my task"] testTasks)
 
   , "d removes any task that matches the given name" ~:
-    [chaff] ~=? (extractTasks $ run ["d", "my task"] tasks)
+    [chaff] ~=? (extractTasks $ run ["d", "my task"] testTasks)
 
   , "d removes any task that matches the given name with hyphens" ~:
-    [chaff] ~=? (extractTasks $ run ["d", "my-task"] tasks)
+    [chaff] ~=? (extractTasks $ run ["d", "my-task"] testTasks)
 
   , "a adds a new unscheduled task" ~:
     [blankTask{name="newtask", scheduled=Nothing, category=Next}] ~=?
-      (extractTasks $ run ["a", "newtask"] [])
+      (extractTasks $ run ["a", "newtask"] noData)
 
   , "a adds a new scheduled task for today" ~:
     [blankTask{name="newtask", scheduled=Just today, category=Today}] ~=?
-      (extractTasks $ run ["a", "0", "newtask"] [])
+      (extractTasks $ run ["a", "0", "newtask"] noData)
 
   , "a adds a new scheduled task for tomorrow" ~:
     [blankTask{name="newtask", scheduled=Just tomorrow, category=Scheduled}] ~=?
-      (extractTasks $ run ["a", "1", "newtask"] [])
+      (extractTasks $ run ["a", "1", "newtask"] noData)
   ]
-  where tasks =
+  where testTasks = ProgramData{recurring=[],tasks=
           [ blankTask{name="my task"}
           , chaff
-          ]
-        run args tasks = xtdo args ProgramData{tasks=tasks, recurring=[]} today
+          ]}
+        noData = ProgramData{recurring=[],tasks=[]}
+        run args programData = xtdo args programData today
         chaff = blankTask{name="chaff"}
         today = (d 2011 1 1)
         tomorrow = (d 2011 1 2)
-        extractTasks (x, y, z) = x
-        extractCategories (x, y, z) = y
-        extractFormatter (x, y, z) = z
+        extractTasks (x, y) = tasks x
+        extractCategories (x, y) = y
 
 dayTests =
   [ t "1d"  (d 2011 2 1)  (d 2011 2 2)
