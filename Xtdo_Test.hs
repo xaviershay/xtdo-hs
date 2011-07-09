@@ -27,22 +27,22 @@ xtdoTests =
     [chaff] ~=? (extractTasks $ xtdo["d", "my-task"] tasks today)
 
   , "a adds a new unscheduled task" ~:
-    [Task{name="newtask", scheduled=Nothing, category=Next}] ~=?
+    [blankTask{name="newtask", scheduled=Nothing, category=Next}] ~=?
       (extractTasks $ xtdo["a", "newtask"] [] today)
 
   , "a adds a new scheduled task for today" ~:
-    [Task{name="newtask", scheduled=Just today, category=Today}] ~=?
+    [blankTask{name="newtask", scheduled=Just today, category=Today}] ~=?
       (extractTasks $ xtdo["a", "0", "newtask"] [] today)
 
   , "a adds a new scheduled task for tomorrow" ~:
-    [Task{name="newtask", scheduled=Just tomorrow, category=Scheduled}] ~=?
+    [blankTask{name="newtask", scheduled=Just tomorrow, category=Scheduled}] ~=?
       (extractTasks $ xtdo["a", "1", "newtask"] [] today)
   ]
   where tasks =
-          [ Task{name="my task", scheduled=Nothing, category=Next}
+          [ blankTask{name="my task"}
           , chaff
           ]
-        chaff = Task{name="chaff",  scheduled=Nothing, category=Next}
+        chaff = blankTask{name="chaff"}
         today = (d 2011 1 1)
         tomorrow = (d 2011 1 2)
         extractTasks (x, y, z) = x

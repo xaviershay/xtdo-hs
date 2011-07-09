@@ -20,8 +20,10 @@ data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 data Task = Task {
   name      :: String,
   scheduled :: Maybe Day,
-  category  :: TaskCategory
+  category  :: TaskCategory,
+  period    :: Maybe Day
 } deriving(Show, Eq)
+blankTask = Task{name="", scheduled=Nothing, category=Next, period=Nothing}
 data Formatter = PrettyFormatter | CompletionFormatter deriving(Show, Eq)
 
 xtdo ["l"]      tasks _ = (tasks, [Today], PrettyFormatter)
@@ -47,16 +49,16 @@ xtdo ("a":when:xs) tasks today
                                    [Next],
                                    PrettyFormatter)
   where
-    makeTask n s c = Task{name=intercalate " " n,scheduled=s,category=c}
+    makeTask n s c = blankTask{name=intercalate " " n,scheduled=s,category=c}
 
 addCategory tasks today = map (addCategoryToTask today) tasks
   where
     addCategoryToTask today Task{name=n,scheduled=Just s}
-      | s == today = Task{name=n,scheduled=Just s,category=Today}
-      | otherwise  = Task{name=n,scheduled=Just s,category=Scheduled}
+      | s == today = blankTask{name=n,scheduled=Just s,category=Today}
+      | otherwise  = blankTask{name=n,scheduled=Just s,category=Scheduled}
 
     addCategoryToTask today Task{name=n,scheduled=Nothing}
-                 = Task{name=n,scheduled=Nothing,category=Next}
+                 = blankTask{name=n,scheduled=Nothing,category=Next}
 
 
 day :: Day -> String -> Day
@@ -123,15 +125,9 @@ extractTask task = do
   m <- fromMapping task
   n <- lookupScalar "name" m
   let s = lookupScalar "scheduled" m :: Maybe String
-  return Task{name=n, scheduled=toDay s, category=Next}
+  return blankTask{name=n, scheduled=toDay s, category=Next}
 
 toDay Nothing = Nothing
 toDay (Just str) =
   Just $ fromGregorian (toInteger $ x!!0) (x!!1) (x!!2)
   where x = (map read $ splitOn "-" str :: [Int])
-
-testTasks = [Task{ name="do something", scheduled=Nothing, category=Today}]
-
--- Each command returns:
---   The task data structure to be persisted
---   The types of tasks to be displayed
