@@ -40,8 +40,8 @@ data Formatter = PrettyFormatter     [TaskCategory] |
                  deriving (Show, Eq)
 
 data RecurInterval   = Daily | Weekly | Monthly | Yearly deriving (Show, Eq)
-type RecurMultiplier = Integer
-type RecurOffset     = Integer
+type RecurMultiplier = Int
+type RecurOffset     = Int
 
 data RecurFrequency = RecurFrequency RecurInterval RecurMultiplier RecurOffset deriving (Show, Eq)
 
@@ -86,9 +86,27 @@ addCategory tasks today = map (addCategoryToTask today) tasks
                  = blankTask{name=n,scheduled=Nothing,category=Next}
 
 
-parseFrequency :: String -> RecurFrequency
-parseFrequency x = RecurFrequency Daily 1 0
+daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
 
+parseFrequency :: String -> RecurFrequency
+parseFrequency x = RecurFrequency interval multiplier (parseOffset offset)
+  where matches = head $ (x =~ regex :: [[String]])
+        multiplier = read (matches !! 1)
+        interval   = charToInterval (matches !! 2)
+        offset     = (matches !! 3)
+        regex      = "([0-9]+)([dw]),?(" ++ (intercalate "|" daysOfWeek) ++ ")?"
+        parseOffset :: String -> Int
+        parseOffset x
+          | x == ""             = 0
+          | x `elem` daysOfWeek = length $ takeWhile (/= x) daysOfWeek
+          | otherwise           = (read x :: Int)
+
+
+        charToInterval :: String -> RecurInterval
+        charToInterval "d" = Daily
+        charToInterval "w" = Weekly
+
+ --RecurFrequency Daily 1 0
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
 
 day :: Day -> String -> Day

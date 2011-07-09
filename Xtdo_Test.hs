@@ -54,7 +54,7 @@ xtdoTaskTests =
         extractTasks (x, y) = tasks x
         extractCategories (x, y) = y
 
-xtdoRecurTests = 
+xtdoRecurTests =
   [ "l shows all recurring" ~:
     (testData, RecurringFormatter) ~=?
       (run ["l"] testData)
@@ -71,6 +71,15 @@ xtdoRecurTests =
         tomorrow = (d 2011 1 2)
         extractRecurring (x, y) = recurring x
 
+parseFrequencyTests =
+  [ t "1d"     (RecurFrequency Daily 1 0)
+  , t "2d"     (RecurFrequency Daily 2 0)
+  , t "1w,sun" (RecurFrequency Weekly 1 0)
+  , t "1w,mon" (RecurFrequency Weekly 1 1)
+  , t "2w,sat" (RecurFrequency Weekly 2 6)
+  ]
+  where t str expected = "parseFrequencyTests parses " ++ str ~:
+                          expected ~=? (parseFrequency str)
 
 dayTests =
   [ t "1d"  (d 2011 2 1)  (d 2011 2 2)
@@ -89,4 +98,4 @@ dayTests =
   where t str from expected = "Xtdo.day parses " ++ str ~:
                                 expected ~=? (day from str)
 
-main = runTestTT $ TestList ( xtdoTaskTests ++ xtdoRecurTests ++ dayTests )
+main = runTestTT $ TestList ( xtdoTaskTests ++ xtdoRecurTests ++ parseFrequencyTests ++ dayTests )
