@@ -25,9 +25,9 @@ data Task = Task {
 data RecurringTaskDefinition = RecurringTaskDefinition {
   -- ideally this would be 'name' but haskell doesn't like the collision with
   -- Task.name
-  template_name :: String,
-  next          :: Day,
-  period        :: String -- TODO: Better type definition
+  templateName :: String,
+  next         :: Day,
+  period       :: String -- TODO: Better type definition
 } deriving (Show, Eq)
 data ProgramData = ProgramData {
   tasks     :: [Task],
@@ -35,13 +35,15 @@ data ProgramData = ProgramData {
 } deriving (Show, Eq)
 blankTask = Task{name="", scheduled=Nothing, category=Next}
 data Formatter = PrettyFormatter     [TaskCategory] |
-                 CompletionFormatter [TaskCategory]
+                 CompletionFormatter [TaskCategory] |
+                 RecurringFormatter
                  deriving (Show, Eq)
 
 xtdo :: [String] -> ProgramData -> Day -> (ProgramData, Formatter)
 xtdo ["l"]      x _ = (x, PrettyFormatter [Today])
 xtdo ["l", "a"] x _ = (x, PrettyFormatter [Today, Next, Scheduled])
 xtdo ["l", "c"] x _ = (x, CompletionFormatter [Today, Next, Scheduled])
+xtdo ["r", "l"] x _ = (x, RecurringFormatter)
 xtdo ("d":xs)   x _ = (replaceTasks x [task | task <- tasks x,
                            hyphenize (name task) /= hyphenize (intercalate "-" xs)
                          ],
@@ -107,6 +109,19 @@ completionFormatter categoriesToDisplay programData = do
     )
   putStr ""
 
+recurringFormatter programData = do
+  putStrLn ""
+
+  setSGR [ SetColor Foreground Dull Yellow ]
+  putStrLn $ "==== Recurring"
+  putStrLn ""
+
+  setSGR [Reset]
+  forM (recurring programData) (\definition -> do
+    putStrLn $ "  " ++ templateName definition
+    )
+  putStrLn ""
+
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
 finish (programData, formatter) = do
@@ -115,6 +130,7 @@ finish (programData, formatter) = do
   doFormatting formatter programData
   where doFormatting (PrettyFormatter x)     = prettyFormatter x
         doFormatting (CompletionFormatter x) = completionFormatter x
+        doFormatting (RecurringFormatter   ) = recurringFormatter
         toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
         toYaml Task{name=x, scheduled=Just when} =
