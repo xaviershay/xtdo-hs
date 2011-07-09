@@ -30,7 +30,7 @@ xtdo ["l"]      tasks _ = (tasks, [Today], PrettyFormatter)
 xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
 xtdo ["l", "c"] tasks _ = (tasks, [Today, Next, Scheduled], CompletionFormatter)
 
-xtdo ("d":xs)   tasks _ = ([task | task <- tasks, 
+xtdo ("d":xs)   tasks _ = ([task | task <- tasks,
                              hyphenize (name task) /= hyphenize (intercalate "-" xs)
                            ],
                            [Today, Next],
@@ -101,7 +101,7 @@ completionFormatter (tasks, categoriesToDisplay) = do
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
 finish (tasks, categoriesToDisplay, formatter) = do
-  encodeFile "tasks.yml" $ Mapping 
+  encodeFile "tasks.yml" $ Mapping
     [ ("tasks", Sequence $ map toYaml tasks) ]
   doFormatting formatter (tasks, categoriesToDisplay)
   where doFormatting PrettyFormatter     = prettyFormatter
@@ -118,10 +118,10 @@ finish (tasks, categoriesToDisplay, formatter) = do
 flatten = foldl (++) [] -- Surely this is in the stdlib?
 
 loadYaml = do
-  object <- join $ decodeFile "tasks.yml"
-  mappings <- fromMapping object
+  object        <- join $ decodeFile "tasks.yml"
+  mappings      <- fromMapping object
   tasksSequence <- lookupSequence "tasks" mappings
-  tasks <- mapM extractTask tasksSequence -- >>= mapM extractTask
+  tasks         <- mapM extractTask tasksSequence
   return tasks
 
 extractTask task = do
