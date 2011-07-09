@@ -9,39 +9,40 @@ d = fromGregorian
 
 xtdoTests =
   [ "l only shows Today" ~:
-    (tasks, [Today], PrettyFormatter) ~=? (xtdo ["l"] tasks today)
+    (tasks, [Today], PrettyFormatter) ~=? (run ["l"] tasks)
 
   , "l a shows all tasks" ~:
-    (tasks, [Today, Next, Scheduled], PrettyFormatter) ~=? (xtdo ["l", "a"] tasks today)
+    (tasks, [Today, Next, Scheduled], PrettyFormatter) ~=? (run ["l", "a"] tasks)
 
   , "l c shows all tasks" ~:
-    (tasks, [Today, Next, Scheduled], CompletionFormatter) ~=? (xtdo ["l", "c"] tasks today)
+    (tasks, [Today, Next, Scheduled], CompletionFormatter) ~=? (run ["l", "c"] tasks)
 
   , "d shows only today and next" ~:
-    [Today, Next] ~=? (extractCategories $ xtdo ["d", "my task"] tasks today)
+    [Today, Next] ~=? (extractCategories $ run ["d", "my task"] tasks)
 
   , "d removes any task that matches the given name" ~:
-    [chaff] ~=? (extractTasks $ xtdo["d", "my task"] tasks today)
+    [chaff] ~=? (extractTasks $ run ["d", "my task"] tasks)
 
   , "d removes any task that matches the given name with hyphens" ~:
-    [chaff] ~=? (extractTasks $ xtdo["d", "my-task"] tasks today)
+    [chaff] ~=? (extractTasks $ run ["d", "my-task"] tasks)
 
   , "a adds a new unscheduled task" ~:
     [blankTask{name="newtask", scheduled=Nothing, category=Next}] ~=?
-      (extractTasks $ xtdo["a", "newtask"] [] today)
+      (extractTasks $ run ["a", "newtask"] [])
 
   , "a adds a new scheduled task for today" ~:
     [blankTask{name="newtask", scheduled=Just today, category=Today}] ~=?
-      (extractTasks $ xtdo["a", "0", "newtask"] [] today)
+      (extractTasks $ run ["a", "0", "newtask"] [])
 
   , "a adds a new scheduled task for tomorrow" ~:
     [blankTask{name="newtask", scheduled=Just tomorrow, category=Scheduled}] ~=?
-      (extractTasks $ xtdo["a", "1", "newtask"] [] today)
+      (extractTasks $ run ["a", "1", "newtask"] [])
   ]
   where tasks =
           [ blankTask{name="my task"}
           , chaff
           ]
+        run args tasks = xtdo args ProgramData{tasks=tasks, recurring=[]} today
         chaff = blankTask{name="chaff"}
         today = (d 2011 1 1)
         tomorrow = (d 2011 1 2)

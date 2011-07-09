@@ -9,4 +9,8 @@ main = do
   tasks <- loadYaml
   now <- getCurrentTime
   let today = (utctDay now)
-  finish $ xtdo args (addCategory tasks today) today
+  finish $ xtdo args (decoratedData tasks today) today
+ -- ProgramData{tasks=tasks,recurring=recurring} =
+  where decoratedData tasks today =
+          ProgramData{tasks=decoratedTasks,recurring=[]}
+          where decoratedTasks = addCategory tasks today

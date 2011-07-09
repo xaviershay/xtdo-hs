@@ -20,22 +20,32 @@ data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 data Task = Task {
   name      :: String,
   scheduled :: Maybe Day,
-  category  :: TaskCategory,
-  period    :: Maybe Day
+  category  :: TaskCategory
 } deriving(Show, Eq)
-blankTask = Task{name="", scheduled=Nothing, category=Next, period=Nothing}
+data RecurringTaskDefinition = RecurringTaskDefinition {
+  -- ideally this would be 'name' but haskell doesn't like the collision with
+  -- Task.name
+  template_name :: String,
+  next          :: Day,
+  period        :: String -- TODO: Better type definition
+}
+data ProgramData = ProgramData {
+  tasks     :: [Task],
+  recurring :: [RecurringTaskDefinition]
+}
+blankTask = Task{name="", scheduled=Nothing, category=Next}
 data Formatter = PrettyFormatter | CompletionFormatter deriving(Show, Eq)
 
-xtdo ["l"]      tasks _ = (tasks, [Today], PrettyFormatter)
-xtdo ["l", "a"] tasks _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
-xtdo ["l", "c"] tasks _ = (tasks, [Today, Next, Scheduled], CompletionFormatter)
+xtdo ["l"]      ProgramData{tasks=tasks} _ = (tasks, [Today], PrettyFormatter)
+xtdo ["l", "a"] ProgramData{tasks=tasks} _ = (tasks, [Today, Next, Scheduled], PrettyFormatter)
+xtdo ["l", "c"] ProgramData{tasks=tasks} _ = (tasks, [Today, Next, Scheduled], CompletionFormatter)
 
-xtdo ("d":xs)   tasks _ = ([task | task <- tasks,
+xtdo ("d":xs)   ProgramData{tasks=tasks} _ = ([task | task <- tasks,
                              hyphenize (name task) /= hyphenize (intercalate "-" xs)
                            ],
                            [Today, Next],
                            PrettyFormatter)
-xtdo ("a":when:xs) tasks today
+xtdo ("a":when:xs) ProgramData{tasks=tasks} today
   | when =~ "0d?"               = (tasks ++
                                    [makeTask xs (Just $ day today when) Today],
                                    [Today],
