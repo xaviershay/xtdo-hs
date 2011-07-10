@@ -140,25 +140,31 @@ parseFrequency x = RecurFrequency interval multiplier (parseOffset offset)
 
 data StepDirection = Forward | Backward
 
+-- This method works by build up an infinite sequence of days on which
+-- the definition will occur starting from a day earlier than today, then
+-- picking the first element in the sequence that is greater than today.
 calculateNextOccurrence :: Day -> RecurFrequency -> Day
 calculateNextOccurrence today (RecurFrequency interval multiplier offset) =
-  head $ dropWhile (\x -> x <= today) (frequenciesFrom startingDay)
-  where frequenciesFrom day     = frequencySeq $
-                                  addDays (toInteger offset) (startOfInterval interval day)
-        frequencySeq day        = day:(frequencySeq $ stepByInterval day Forward)
-        startingDay             = stepByInterval today Backward
-        stepByInterval day direction =
-          (intervalToModifier interval) (toInteger multiplier * (modifier direction)) day
-          where modifier Forward = 1
+  head $ dropWhile (<= today) (occurencesFrom firstOccurrence)
+  where firstOccurrence        = addDays
+                                  (toInteger offset)
+                                  (startOfInterval interval startDay)
+        occurencesFrom day     = day:(occurencesFrom $ stepByInterval day Forward)
+        startDay               = stepByInterval today Backward
+        stepByInterval day dir =
+          (intervalToModifier interval)
+          (toInteger multiplier * (modifier dir))
+          day
+          where modifier Forward  = 1
                 modifier Backward = -1
 
+-- These date functions complement those provided by the standard library.
 
 startOfInterval Day   day = day
 startOfInterval Week  day = fromSundayStartWeek (year day) (week day) 0
 startOfInterval Month day = fromGregorian (year day) (month day) 1
 startOfInterval Year  day = fromGregorian (year day) 1 1
 
--- These functions extract components out of a given Day
 year :: Day -> Integer
 year  = fst . toOrdinalDate
 
@@ -169,6 +175,7 @@ month = month' . toGregorian
 week :: Day -> Int
 week  = fst . sundayStartWeek
 
+-- Functions to manipulate ProgramData
 replaceTasks :: ProgramData -> [Task] -> ProgramData
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
 
