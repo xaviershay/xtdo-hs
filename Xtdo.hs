@@ -50,16 +50,18 @@ xtdo ["l"]      x _ = (x, PrettyFormatter [Today])
 xtdo ["l", "a"] x _ = (x, PrettyFormatter [Today, Next, Scheduled])
 xtdo ["l", "c"] x _ = (x, CompletionFormatter [Today, Next, Scheduled])
 xtdo ["r", "l"] x _ = (x, RecurringFormatter)
-xtdo ("r":"a":frequency:xs) x today =
-  (addRecurring x (makeRecurring xs (parseFrequency frequency)), RecurringFormatter)
-  where makeRecurring name frequency = RecurringTaskDefinition{
-                                         frequency=frequency,
-                                         templateName=intercalate " " name,
-                                         nextOccurrence=(addDays 1 today)}
-        addRecurring programData definition = ProgramData{
-                                                tasks=tasks programData,
-                                                recurring=(recurring programData) ++
-                                                          [definition]}
+xtdo ("r":"a":frequencyString:xs) x today =
+  (addRecurring x makeRecurring, RecurringFormatter)
+  where makeRecurring =
+          RecurringTaskDefinition{
+            frequency      = frequency,
+            templateName   = name,
+            nextOccurrence = nextOccurrence
+          }
+        name           = intercalate " " xs
+        frequency      = parseFrequency frequencyString
+        nextOccurrence = calculateNextOccurrence today frequency
+
 xtdo ("d":xs)   x _ = (replaceTasks x [task | task <- tasks x,
                            hyphenize (name task) /= hyphenize (intercalate "-" xs)
                          ],
@@ -106,7 +108,16 @@ parseFrequency x = RecurFrequency interval multiplier (parseOffset offset)
         charToInterval "d" = Day
         charToInterval "w" = Week
 
+calculateNextOccurrence :: Day -> RecurFrequency -> Day
+calculateNextOccurrence today frequency =
+  addDays 1 today
+
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
+addRecurring programData definition =
+  ProgramData{
+    tasks     = tasks programData,
+    recurring = (recurring programData) ++ [definition]
+  }
 
 day :: Day -> String -> Day
 day today when = modifier today

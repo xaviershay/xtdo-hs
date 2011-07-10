@@ -81,6 +81,13 @@ parseFrequencyTests =
   where t str expected = "parseFrequencyTests parses " ++ str ~:
                           expected ~=? (parseFrequency str)
 
+calculateNextOccurrenceTests =
+  [ t (d 2011 2 1) (RecurFrequency Day 1 0) (d 2011 2 2)
+  ]
+  where t today frequency expected =
+          "calculateNextOccurrence for " ++ (show frequency) ~:
+          expected ~=? (calculateNextOccurrence today frequency)
+
 dayTests =
   [ t "1d"  (d 2011 2 1)  (d 2011 2 2)
   , t "2d"  (d 2011 2 1)  (d 2011 2 3)
@@ -98,4 +105,8 @@ dayTests =
   where t str from expected = "Xtdo.day parses " ++ str ~:
                                 expected ~=? (day from str)
 
-main = runTestTT $ TestList ( xtdoTaskTests ++ xtdoRecurTests ++ parseFrequencyTests ++ dayTests )
+main = runTestTT $ TestList ( xtdoTaskTests ++
+                              xtdoRecurTests ++
+                              parseFrequencyTests ++
+                              calculateNextOccurrenceTests ++
+                              dayTests )
