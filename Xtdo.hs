@@ -49,9 +49,9 @@ type RecurOffset     = Int
 data RecurFrequency = RecurFrequency DayInterval RecurMultiplier RecurOffset deriving (Show, Eq)
 
 xtdo :: [String] -> ProgramData -> Day -> (ProgramData, Formatter)
-xtdo ["l"]      x t = (createRecurring x t, PrettyFormatter [Today])
-xtdo ["l", "a"] x t = (createRecurring x t, PrettyFormatter [Today, Next, Scheduled])
-xtdo ["l", "c"] x t = (createRecurring x t, CompletionFormatter [Today, Next, Scheduled])
+xtdo ["l"]      x t = (createRecurring t x, PrettyFormatter [Today])
+xtdo ["l", "a"] x t = (createRecurring t x, PrettyFormatter [Today, Next, Scheduled])
+xtdo ["l", "c"] x t = (createRecurring t x, CompletionFormatter [Today, Next, Scheduled])
 xtdo ["r", "l"] x _ = (x, RecurringFormatter)
 xtdo ("r":"a":frequencyString:xs) x today =
   (addRecurring x makeRecurring, RecurringFormatter)
@@ -90,8 +90,8 @@ addCategory tasks today = map (addCategoryToTask today) tasks
     addCategoryToTask today Task{name=n,scheduled=Nothing}
                  = blankTask{name=n,scheduled=Nothing,category=Next}
 
-createRecurring :: ProgramData -> Day -> ProgramData
-createRecurring programData today =
+createRecurring :: Day -> ProgramData -> ProgramData
+createRecurring today programData =
   replaceRecurring (foldl addTask programData noDuplicatedTasks) newRecurring
   where matching = filter (\x -> nextOccurrence x <= today) (recurring programData)
         newRecurring =

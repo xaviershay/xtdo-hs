@@ -90,13 +90,14 @@ calculateNextOccurrenceTests =
 
 createRecurringTests =
   [ "adds a recurring task next occuring today" ~:
-    expected ~=? (tasks $ createRecurring programData today)
+    expected ~=? (tasks $ run programData)
   , "does not add duplicates" ~:
-    expected ~=? (tasks $ createRecurring (createRecurring programData today) today)
+    expected ~=? (tasks $ run (run programData))
   , "recaluates nextOccurrence" ~:
-    expectedRecurring ~=? (recurring $ createRecurring programData today)
+    expectedRecurring ~=? (recurring $ run programData)
   ]
-  where definition = RecurringTaskDefinition {
+  where run x = createRecurring today x
+        definition = RecurringTaskDefinition {
           templateName   = "newtask",
           frequency      = frequency,
           nextOccurrence = today
