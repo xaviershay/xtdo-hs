@@ -1,3 +1,6 @@
+-- FlexibleContexts needed for explicit type declarations on YAML functions
+{-# LANGUAGE FlexibleContexts #-}
+
 module Xtdo where
 import System.Environment
 import System.Console.ANSI
@@ -238,9 +241,9 @@ loadYaml = do
   recurring     <- mapM extractRecurring recurSequence
   return ProgramData {tasks=tasks,recurring=recurring}
 
---extractRecurring
---  :: (Failure ObjectExtractError m) =>
---     Object String String -> m RecurringTaskDefinition
+extractRecurring
+  :: (Failure ObjectExtractError m) =>
+     StringObject -> m RecurringTaskDefinition
 extractRecurring x = do
   m <- fromMapping x
   n <- lookupScalar "templateName"   m
@@ -260,8 +263,8 @@ parseDay x =
         unwrapDay (Just x) = x
 
 
---extractTask
---  :: (Failure ObjectExtractError m) => Object String String -> m Task
+extractTask
+  :: (Failure ObjectExtractError m) => StringObject -> m Task
 extractTask task = do
   m <- fromMapping task
   n <- lookupScalar "name" m
