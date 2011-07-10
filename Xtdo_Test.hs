@@ -58,6 +58,8 @@ extractCategories (x, y) = y
 xtdoBumpTests =
   [ "b 0 bumps to today" ~:
     expectedTasks ~=? (extractTasks $ run ["b", "0", "newtask"] testTasks)
+  , "b 1 bumps to tomorrow" ~:
+    expectedTomorrow ~=? (extractTasks $ run ["b", "1", "newtask"] testTasks)
   ]
   where testTasks = noData{tasks=
           [ blankTask{name="newtask"}
@@ -69,8 +71,16 @@ xtdoBumpTests =
               scheduled = Just today
             }
           ]
+        expectedTomorrow =
+          [ blankTask{
+              name      = "newtask",
+              category  = Scheduled,
+              scheduled = Just tomorrow
+            }
+          ]
         run args x = xtdo args x today
-        today          = (d 2011 1 1)
+        today      = (d 2011 1 1)
+        tomorrow   = (d 2011 1 2)
 
 xtdoRecurTests =
   [ "l shows all recurring" ~:

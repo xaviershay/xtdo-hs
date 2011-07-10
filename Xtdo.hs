@@ -75,28 +75,38 @@ xtdo ("d":xs)   x t = (createRecurring t $ replaceTasks x [task | task <- tasks 
                          ],
                          PrettyFormatter [Today, Next])
 
-xtdo ("b":when:xs) x today =
-  run taskToBump
-  where taskToBump = find ((==) taskNameToBump . hyphenize . name) (tasks x)
-        taskNameToBump = hyphenize $ intercalate " " xs
-        run Nothing = (x, PrettyFormatter [Today, Next, Scheduled])
-        run (Just task) = (replaceTasks x $
-                            (delete task (tasks x)) ++
-                            [task{category=Today,scheduled=Just today}],
-                            PrettyFormatter [Today, Next, Scheduled])
+xtdo ("b":when:xs) x today
+  | when =~ "([0-9]+)([dwmy]?)" =
+    run taskToBump
+    where taskToBump      = find ((==) taskNameToBump . hyphenize . name) (tasks x)
+          taskNameToBump  = hyphenize $ intercalate " " xs
+          parsedDay       = day today when
+          wrapData x      = (x, PrettyFormatter [Today, Next, Scheduled])
+          run Nothing     = wrapData x
+          run (Just task) = wrapData $ replaceTasks x $
+                              (delete task (tasks x)) ++
+                              [task{
+                                category  = categoryForScheduled
+                                              today
+                                              (Just parsedDay),
+                                scheduled = Just parsedDay
+                              }]
 
 xtdo ("a":when:xs) x today
-  | when =~ "0d?"               = (createRecurring today $ replaceTasks x (tasks x ++
-                                   [makeTask xs (Just $ day today when) Today]),
-                                   PrettyFormatter [Today])
-  | when =~ "([0-9]+)([dwmy]?)" = (createRecurring today $ replaceTasks x (tasks x ++
-                                   [makeTask xs (Just $ day today when) Scheduled]),
-                                   PrettyFormatter [Scheduled])
-  | otherwise                   = (createRecurring today $ replaceTasks x (tasks x ++
-                                   [makeTask ([when] ++ xs) Nothing Next]),
-                                   PrettyFormatter [Next])
+  | when =~ "([0-9]+)([dwmy]?)" = run (Just parsedDay) xs
+  | otherwise                   = run Nothing          allAsName
   where
-    makeTask n s c = blankTask{name=intercalate " " n,scheduled=s,category=c}
+    allAsName = [when] ++ xs
+    parsedDay = day today when
+
+    run scheduled name = ( createRecurring today $ addTask x blankTask{
+                             name      = intercalate " " name,
+                             scheduled = scheduled,
+                             category  = categoryForScheduled today scheduled
+                           }
+                         , PrettyFormatter [categoryForScheduled today scheduled]
+                         )
+
 addCategory tasks today = map (addCategoryToTask today) tasks
   where
     addCategoryToTask today Task{name=n,scheduled=Just s}
@@ -229,6 +239,11 @@ day today when = modifier today
           charToModifier "m" = addGregorianMonthsClip
           charToModifier "y" = addGregorianYearsClip
           charToModifier other = error other
+
+categoryForScheduled today Nothing = Next
+categoryForScheduled today (Just day)
+  | day == today = Today
+  | otherwise    = Scheduled
 
 intervalToModifier :: DayInterval -> (Integer -> Day -> Day)
 intervalToModifier Day = addDays
