@@ -173,19 +173,29 @@ hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
 finish (programData, formatter) = do
   encodeFile "tasks.yml" $ Mapping
-    [ ("tasks", Sequence $ map toYaml (tasks programData)) ]
+    [ ("tasks", Sequence $ map toYaml (tasks programData))
+    , ("recurring", Sequence $ map recurToYaml (recurring programData))]
   doFormatting formatter programData
   where doFormatting (PrettyFormatter x)     = prettyFormatter x
         doFormatting (CompletionFormatter x) = completionFormatter x
         doFormatting (RecurringFormatter   ) = recurringFormatter
+        recurToYaml x =
+          Mapping [ ("templateName",   Scalar (templateName x))
+                  , ("nextOccurrence", Scalar (dayToString       $ nextOccurrence x))
+                  , ("frequency",      Scalar (frequencyToString $ frequency x))
+                  ]
         toYaml Task{name=x, scheduled=Nothing}   =
           Mapping [("name", Scalar x)]
         toYaml Task{name=x, scheduled=Just when} =
           Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
-          where dayToString :: Day -> String
-                dayToString = intercalate "-" . map show . toList . toGregorian
-                  where toList (a,b,c) = [a, toInteger b, toInteger c]
 
+
+dayToString :: Day -> String
+dayToString = intercalate "-" . map show . toList . toGregorian
+  where toList (a,b,c) = [a, toInteger b, toInteger c]
+
+frequencyToString :: RecurFrequency -> String
+frequencyToString x = "1d"
 
 flatten = foldl (++) [] -- Surely this is in the stdlib?
 
@@ -194,7 +204,27 @@ loadYaml = do
   mappings      <- fromMapping object
   tasksSequence <- lookupSequence "tasks" mappings
   tasks         <- mapM extractTask tasksSequence
-  return tasks
+  recurSequence <- lookupSequence "recurring" mappings
+  recurring     <- mapM extractRecurring recurSequence
+  return ProgramData {tasks=tasks,recurring=recurring}
+
+extractRecurring x = do
+  m <- fromMapping x
+  n <- lookupScalar "templateName"   m
+  d <- lookupScalar "nextOccurrence" m
+  f <- lookupScalar "frequency"      m
+  return RecurringTaskDefinition{
+      templateName   = n,
+      nextOccurrence = parseDay       d,
+      frequency      = parseFrequency f
+    }
+
+parseDay :: String -> Day
+parseDay x =
+  unwrapDay (toDay $ Just x)
+  where unwrapDay :: Maybe Day -> Day
+        unwrapDay Nothing  = error x
+        unwrapDay (Just x) = x
 
 extractTask task = do
   m <- fromMapping task
