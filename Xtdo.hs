@@ -120,22 +120,25 @@ createRecurring today programData =
 daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
 
 parseFrequency :: String -> RecurFrequency
-parseFrequency x = RecurFrequency interval multiplier (parseOffset offset)
+parseFrequency x =
+  RecurFrequency interval multiplier (parseOffset offset)
   where matches = head $ (x =~ regex :: [[String]])
         multiplier = read (matches !! 1)
         interval   = charToInterval (matches !! 2)
         offset     = (matches !! 3)
-        regex      = "([0-9]+)([dw]),?(" ++ (intercalate "|" daysOfWeek) ++ ")?"
+        regex      = "([0-9]+)([dwmy]),?([0-9]+|" ++ (intercalate "|" daysOfWeek) ++ ")?"
         parseOffset :: String -> Int
         parseOffset x
           | x == ""             = 0
           | x `elem` daysOfWeek = length $ takeWhile (/= x) daysOfWeek
-          | otherwise           = (read x :: Int)
+          | otherwise           = (read x :: Int) - 1
 
 
         charToInterval :: String -> DayInterval
         charToInterval "d" = Day
         charToInterval "w" = Week
+        charToInterval "m" = Month
+        charToInterval "y" = Year
 
 
 data StepDirection = Forward | Backward

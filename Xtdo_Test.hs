@@ -77,6 +77,10 @@ parseFrequencyTests =
   , t "1w,sun" (RecurFrequency Week 1 0)
   , t "1w,mon" (RecurFrequency Week 1 1)
   , t "2w,sat" (RecurFrequency Week 2 6)
+  , t "1m,1"   (RecurFrequency Month 1 0)
+  , t "2m,10"  (RecurFrequency Month 2 9)
+  , t "1y,1"   (RecurFrequency Year 1 0)
+  , t "2y,10"  (RecurFrequency Year 2 9)
   ]
   where t str expected = "parseFrequencyTests parses " ++ str ~:
                           expected ~=? (parseFrequency str)
