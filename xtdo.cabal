@@ -9,5 +9,5 @@ Maintainer:          Xavier Shay <contact@rhnh.net>
 Build-Depends:       base >= 4,time,data-object,data-object-yaml,regex-posix,failure,split,ansi-terminal,regex-compat
 build-type:          Simple
 
-Executable:          xtdo
+Executable:          xtdo-hs
 Main-is:             Main.hs
