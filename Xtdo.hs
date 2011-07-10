@@ -74,26 +74,23 @@ xtdo' ("r":"a":frequencyString:xs) x today =
         frequency      = parseFrequency frequencyString
         nextOccurrence = calculateNextOccurrence today frequency
 
-xtdo' ("d":xs)   x t = (replaceTasks x [task | task <- tasks x,
-                           hyphenize (name task) /= hyphenize (intercalate "-" xs)
-                         ],
-                         PrettyFormatter [Today, Next])
+xtdo' ("d":xs)   x t =
+  (extractData $ deleteTaskByName x xs, PrettyFormatter [Today, Next])
+  where
+    extractData (x, _) = x
 
 xtdo' ("b":when:xs) x today
   | when =~ "([0-9]+)([dwmy]?)" =
-    run taskToBump
-    where taskToBump      = find ((==) taskNameToBump . hyphenize . name) (tasks x)
-          taskNameToBump  = hyphenize $ intercalate " " xs
-          parsedDay       = day today when
-          wrapData x      = (x, PrettyFormatter [Today, Next, Scheduled])
-          run Nothing     = wrapData x
-          run (Just task) = wrapData $ replaceTasks x $
-                              task{
-                                category  = categoryForScheduled
-                                              today
-                                              (Just parsedDay),
-                                scheduled = Just parsedDay
-                              }:(delete task (tasks x))
+    (run $ deleteTaskByName x xs, PrettyFormatter [Today, Next, Scheduled])
+    where
+      parsedDay          = day today when
+      run (x, Nothing)   = x
+      run (x, Just task) = addTask x task{
+                             category  = categoryForScheduled
+                                           today
+                                           (Just parsedDay),
+                             scheduled = Just parsedDay
+                           }
 
 xtdo' ("a":when:xs) x today
   | when =~ "([0-9]+)([dwmy]?)" = run (Just parsedDay) xs
@@ -218,6 +215,21 @@ addTask programData task =
     tasks     = task:(tasks programData),
     recurring = (recurring programData)
   }
+
+deleteTask :: ProgramData -> Task -> ProgramData
+deleteTask programData task =
+  ProgramData{
+    tasks     = delete task (tasks programData),
+    recurring = (recurring programData)
+  }
+
+deleteTaskByName :: ProgramData -> [String] -> (ProgramData, Maybe Task)
+deleteTaskByName x nameString =
+  run taskToDelete
+  where taskToDelete    = find ((==) taskName . hyphenize . name) (tasks x)
+        taskName        = hyphenize $ intercalate " " nameString
+        run Nothing     = (x, Nothing)
+        run (Just task) = (deleteTask x task, Just task)
 
 addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 addRecurring programData definition =
