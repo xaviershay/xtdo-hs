@@ -112,6 +112,7 @@ calculateNextOccurrence :: Day -> RecurFrequency -> Day
 calculateNextOccurrence today frequency =
   addDays 1 today
 
+replaceTasks :: ProgramData -> [Task] -> ProgramData
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
 addRecurring programData definition =
   ProgramData{
@@ -135,6 +136,7 @@ day today when = modifier today
           charToModifier "y" = addGregorianYearsClip
           charToModifier other = error other
 
+prettyFormatter :: [TaskCategory] -> ProgramData -> IO ()
 prettyFormatter categoriesToDisplay programData = do
   forM categoriesToDisplay (\currentCategory -> do
     putStrLn ""
@@ -150,12 +152,14 @@ prettyFormatter categoriesToDisplay programData = do
     )
   putStrLn ""
 
+completionFormatter :: [TaskCategory] -> ProgramData -> IO ()
 completionFormatter categoriesToDisplay programData = do
   forM [t | t <- tasks programData] (\task -> do
     putStrLn $ hyphenize (name task)
     )
   putStr ""
 
+recurringFormatter :: ProgramData -> IO ()
 recurringFormatter programData = do
   putStrLn ""
 
@@ -171,6 +175,7 @@ recurringFormatter programData = do
 
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
+finish :: (ProgramData, Formatter) -> IO ()
 finish (programData, formatter) = do
   encodeFile "tasks.yml" $ Mapping
     [ ("tasks", Sequence $ map toYaml (tasks programData))
@@ -199,6 +204,7 @@ frequencyToString x = "1d"
 
 flatten = foldl (++) [] -- Surely this is in the stdlib?
 
+loadYaml :: IO ProgramData
 loadYaml = do
   object        <- join $ decodeFile "tasks.yml"
   mappings      <- fromMapping object
@@ -208,6 +214,9 @@ loadYaml = do
   recurring     <- mapM extractRecurring recurSequence
   return ProgramData {tasks=tasks,recurring=recurring}
 
+--extractRecurring
+--  :: (Failure ObjectExtractError m) =>
+--     Object String String -> m RecurringTaskDefinition
 extractRecurring x = do
   m <- fromMapping x
   n <- lookupScalar "templateName"   m
@@ -226,12 +235,16 @@ parseDay x =
         unwrapDay Nothing  = error x
         unwrapDay (Just x) = x
 
+
+--extractTask
+--  :: (Failure ObjectExtractError m) => Object String String -> m Task
 extractTask task = do
   m <- fromMapping task
   n <- lookupScalar "name" m
   let s = lookupScalar "scheduled" m :: Maybe String
   return blankTask{name=n, scheduled=toDay s, category=Next}
 
+toDay :: Maybe String -> Maybe Day
 toDay Nothing = Nothing
 toDay (Just str) =
   Just $ fromGregorian (toInteger $ x!!0) (x!!1) (x!!2)
