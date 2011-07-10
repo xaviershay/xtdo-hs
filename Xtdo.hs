@@ -65,18 +65,18 @@ xtdo ("r":"a":frequencyString:xs) x today =
         frequency      = parseFrequency frequencyString
         nextOccurrence = calculateNextOccurrence today frequency
 
-xtdo ("d":xs)   x _ = (replaceTasks x [task | task <- tasks x,
+xtdo ("d":xs)   x t = (createRecurring t $ replaceTasks x [task | task <- tasks x,
                            hyphenize (name task) /= hyphenize (intercalate "-" xs)
                          ],
                          PrettyFormatter [Today, Next])
 xtdo ("a":when:xs) x today
-  | when =~ "0d?"               = (replaceTasks x (tasks x ++
+  | when =~ "0d?"               = (createRecurring today $ replaceTasks x (tasks x ++
                                    [makeTask xs (Just $ day today when) Today]),
                                    PrettyFormatter [Today])
-  | when =~ "([0-9]+)([dwmy]?)" = (replaceTasks x (tasks x ++
+  | when =~ "([0-9]+)([dwmy]?)" = (createRecurring today $ replaceTasks x (tasks x ++
                                    [makeTask xs (Just $ day today when) Scheduled]),
                                    PrettyFormatter [Scheduled])
-  | otherwise                   = (replaceTasks x (tasks x ++
+  | otherwise                   = (createRecurring today $ replaceTasks x (tasks x ++
                                    [makeTask ([when] ++ xs) Nothing Next]),
                                    PrettyFormatter [Next])
   where
