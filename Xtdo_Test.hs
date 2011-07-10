@@ -47,12 +47,30 @@ xtdoTaskTests =
           [ blankTask{name="my task"}
           , chaff
           ]}
-        run args programData = xtdo args programData today
-        chaff = blankTask{name="chaff"}
-        today = (d 2011 1 1)
-        tomorrow = (d 2011 1 2)
-        extractTasks (x, y) = tasks x
-        extractCategories (x, y) = y
+        run args programData     = xtdo args programData today
+        chaff                    = blankTask{name="chaff"}
+        today                    = (d 2011 1 1)
+        tomorrow                 = (d 2011 1 2)
+
+extractTasks (x, y)      = tasks x
+extractCategories (x, y) = y
+
+xtdoBumpTests =
+  [ "b 0 bumps to today" ~:
+    expectedTasks ~=? (extractTasks $ run ["b", "0", "newtask"] testTasks)
+  ]
+  where testTasks = noData{tasks=
+          [ blankTask{name="newtask"}
+          ]}
+        expectedTasks =
+          [ blankTask{
+              name      = "newtask",
+              category  = Today,
+              scheduled = Just today
+            }
+          ]
+        run args x = xtdo args x today
+        today          = (d 2011 1 1)
 
 xtdoRecurTests =
   [ "l shows all recurring" ~:
@@ -150,6 +168,7 @@ dayTests =
 
 main = runTestTT $ TestList ( xtdoTaskTests ++
                               xtdoRecurTests ++
+                              xtdoBumpTests ++
                               parseFrequencyTests ++
                               calculateNextOccurrenceTests ++
                               createRecurringTests ++

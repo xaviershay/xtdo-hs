@@ -21,11 +21,14 @@ import Text.Regex.Posix
 import Text.Regex(subRegex, mkRegex)
 
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
+
 data Task = Task {
   name      :: String,
   scheduled :: Maybe Day,
   category  :: TaskCategory
 } deriving(Show, Eq)
+blankTask = Task{name="", scheduled=Nothing, category=Next}
+
 data RecurringTaskDefinition = RecurringTaskDefinition {
   -- ideally this would be 'name' but haskell doesn't like the collision with
   -- Task.name
@@ -33,11 +36,12 @@ data RecurringTaskDefinition = RecurringTaskDefinition {
   nextOccurrence :: Day,
   frequency      :: RecurFrequency
 } deriving (Show, Eq)
+
 data ProgramData = ProgramData {
   tasks     :: [Task],
   recurring :: [RecurringTaskDefinition]
 } deriving (Show, Eq)
-blankTask = Task{name="", scheduled=Nothing, category=Next}
+
 data Formatter = PrettyFormatter     [TaskCategory] |
                  CompletionFormatter [TaskCategory] |
                  RecurringFormatter
@@ -70,6 +74,17 @@ xtdo ("d":xs)   x t = (createRecurring t $ replaceTasks x [task | task <- tasks 
                            hyphenize (name task) /= hyphenize (intercalate "-" xs)
                          ],
                          PrettyFormatter [Today, Next])
+
+xtdo ("b":when:xs) x today =
+  run taskToBump
+  where taskToBump = find ((==) taskNameToBump . hyphenize . name) (tasks x)
+        taskNameToBump = hyphenize $ intercalate " " xs
+        run Nothing = (x, PrettyFormatter [Today, Next, Scheduled])
+        run (Just task) = (replaceTasks x $
+                            (delete task (tasks x)) ++
+                            [task{category=Today,scheduled=Just today}],
+                            PrettyFormatter [Today, Next, Scheduled])
+
 xtdo ("a":when:xs) x today
   | when =~ "0d?"               = (createRecurring today $ replaceTasks x (tasks x ++
                                    [makeTask xs (Just $ day today when) Today]),
