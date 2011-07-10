@@ -88,7 +88,20 @@ addCategory tasks today = map (addCategoryToTask today) tasks
                  = blankTask{name=n,scheduled=Nothing,category=Next}
 
 createRecurring :: ProgramData -> Day -> ProgramData
-createRecurring x _ = x
+createRecurring programData today =
+  foldl addTask programData noDuplicatedTasks
+  where matching = filter (\x -> nextOccurrence x <= today) (recurring programData)
+        newtasks =
+          map taskFromRecurDefintion matching
+        noDuplicatedTasks =
+          filter notInExisting newtasks
+        notInExisting :: Task -> Bool
+        notInExisting task =
+          (hyphenize . name $ task) `notElem` existingTaskNames
+        existingTaskNames =
+          map (hyphenize . name) (tasks programData)
+        taskFromRecurDefintion x =
+          blankTask {name=templateName x,scheduled=Just today,category=Today}
 
 daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
 
@@ -116,6 +129,15 @@ calculateNextOccurrence today frequency =
 
 replaceTasks :: ProgramData -> [Task] -> ProgramData
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
+
+addTask :: ProgramData -> Task -> ProgramData
+addTask programData task =
+  ProgramData{
+    tasks     = (tasks programData) ++ [task],
+    recurring = (recurring programData)
+  }
+
+addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 addRecurring programData definition =
   ProgramData{
     tasks     = tasks programData,

@@ -88,6 +88,26 @@ calculateNextOccurrenceTests =
           "calculateNextOccurrence for " ++ (show frequency) ~:
           expected ~=? (calculateNextOccurrence today frequency)
 
+createRecurringTests =
+  [ "adds a recurring task next occuring today" ~:
+    expected ~=? (tasks $ createRecurring programData today)
+  , "does not add duplicates" ~:
+    expected ~=? (tasks $ createRecurring (createRecurring programData today) today)
+  ]
+  where definition = RecurringTaskDefinition {
+          templateName   = "newtask",
+          frequency      = frequency,
+          nextOccurrence = today
+        }
+        expected = [blankTask {
+          name      = "newtask",
+          scheduled = Just today,
+          category  = Today
+        }]
+        programData = noData{recurring = [definition]}
+        frequency   = RecurFrequency Day 1 0
+        today       = (d 2011 2 1)
+
 dayTests =
   [ t "1d"  (d 2011 2 1)  (d 2011 2 2)
   , t "2d"  (d 2011 2 1)  (d 2011 2 3)
@@ -109,4 +129,5 @@ main = runTestTT $ TestList ( xtdoTaskTests ++
                               xtdoRecurTests ++
                               parseFrequencyTests ++
                               calculateNextOccurrenceTests ++
+                              createRecurringTests ++
                               dayTests )
