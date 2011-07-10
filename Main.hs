@@ -5,12 +5,13 @@ import Data.Time.Clock
 
 main :: IO ()
 main = do
-  args <- getArgs
+  args        <- getArgs
   programData <- loadYaml
-  now <- getCurrentTime
+  now         <- getCurrentTime
   let today = (utctDay now)
   finish $ xtdo args (decoratedData programData today) today
- -- ProgramData{tasks=tasks,recurring=recurring} =
   where decoratedData programData today =
-          ProgramData{tasks=decoratedTasks,recurring=(recurring programData)}
-          where decoratedTasks = addCategory (tasks programData) today
+          ProgramData{
+            tasks     = addCategory (tasks programData) today,
+            recurring = (recurring programData)
+          }
