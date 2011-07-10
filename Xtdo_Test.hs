@@ -93,6 +93,8 @@ createRecurringTests =
     expected ~=? (tasks $ createRecurring programData today)
   , "does not add duplicates" ~:
     expected ~=? (tasks $ createRecurring (createRecurring programData today) today)
+  , "recaluates nextOccurrence" ~:
+    expectedRecurring ~=? (recurring $ createRecurring programData today)
   ]
   where definition = RecurringTaskDefinition {
           templateName   = "newtask",
@@ -104,9 +106,11 @@ createRecurringTests =
           scheduled = Just today,
           category  = Today
         }]
+        expectedRecurring = [definition {nextOccurrence = tomorrow}]
         programData = noData{recurring = [definition]}
         frequency   = RecurFrequency Day 1 0
         today       = (d 2011 2 1)
+        tomorrow    = (d 2011 2 2)
 
 dayTests =
   [ t "1d"  (d 2011 2 1)  (d 2011 2 2)

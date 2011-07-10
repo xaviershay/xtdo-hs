@@ -92,8 +92,18 @@ addCategory tasks today = map (addCategoryToTask today) tasks
 
 createRecurring :: ProgramData -> Day -> ProgramData
 createRecurring programData today =
-  foldl addTask programData noDuplicatedTasks
+  replaceRecurring (foldl addTask programData noDuplicatedTasks) newRecurring
   where matching = filter (\x -> nextOccurrence x <= today) (recurring programData)
+        newRecurring =
+          map (recalculateNextOccurrence today) (recurring programData)
+        recalculateNextOccurrence
+          :: Day -> RecurringTaskDefinition -> RecurringTaskDefinition
+        recalculateNextOccurrence today definition
+          | nextOccurrence definition <= today = definition{
+              nextOccurrence = calculateNextOccurrence today (frequency definition)
+            }
+          | otherwise                          = definition
+
         newtasks =
           map taskFromRecurDefintion matching
         noDuplicatedTasks =
@@ -132,6 +142,9 @@ calculateNextOccurrence today frequency =
 
 replaceTasks :: ProgramData -> [Task] -> ProgramData
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
+
+replaceRecurring :: ProgramData -> [RecurringTaskDefinition] -> ProgramData
+replaceRecurring x recurring = ProgramData{tasks=tasks x,recurring=recurring}
 
 addTask :: ProgramData -> Task -> ProgramData
 addTask programData task =
