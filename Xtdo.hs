@@ -39,11 +39,11 @@ data Formatter = PrettyFormatter     [TaskCategory] |
                  RecurringFormatter
                  deriving (Show, Eq)
 
-data RecurInterval   = Daily | Weekly | Monthly | Yearly deriving (Show, Eq)
+data DayInterval     = Day | Week | Month | Year deriving (Show, Eq)
 type RecurMultiplier = Int
 type RecurOffset     = Int
 
-data RecurFrequency = RecurFrequency RecurInterval RecurMultiplier RecurOffset deriving (Show, Eq)
+data RecurFrequency = RecurFrequency DayInterval RecurMultiplier RecurOffset deriving (Show, Eq)
 
 xtdo :: [String] -> ProgramData -> Day -> (ProgramData, Formatter)
 xtdo ["l"]      x _ = (x, PrettyFormatter [Today])
@@ -102,11 +102,10 @@ parseFrequency x = RecurFrequency interval multiplier (parseOffset offset)
           | otherwise           = (read x :: Int)
 
 
-        charToInterval :: String -> RecurInterval
-        charToInterval "d" = Daily
-        charToInterval "w" = Weekly
+        charToInterval :: String -> DayInterval
+        charToInterval "d" = Day
+        charToInterval "w" = Week
 
- --RecurFrequency Daily 1 0
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
 
 day :: Day -> String -> Day

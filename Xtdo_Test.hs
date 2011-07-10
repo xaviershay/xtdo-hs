@@ -61,7 +61,7 @@ xtdoRecurTests =
   , "a adds a new daily one" ~:
     [RecurringTaskDefinition{
       templateName="newtask",
-      frequency=(RecurFrequency Daily 1 0),
+      frequency=(RecurFrequency Day 1 0),
       nextOccurrence=tomorrow}] ~=?
       (extractRecurring $ run ["a", "1d", "newtask"] noData)
   ]
@@ -72,11 +72,11 @@ xtdoRecurTests =
         extractRecurring (x, y) = recurring x
 
 parseFrequencyTests =
-  [ t "1d"     (RecurFrequency Daily 1 0)
-  , t "2d"     (RecurFrequency Daily 2 0)
-  , t "1w,sun" (RecurFrequency Weekly 1 0)
-  , t "1w,mon" (RecurFrequency Weekly 1 1)
-  , t "2w,sat" (RecurFrequency Weekly 2 6)
+  [ t "1d"     (RecurFrequency Day 1 0)
+  , t "2d"     (RecurFrequency Day 2 0)
+  , t "1w,sun" (RecurFrequency Week 1 0)
+  , t "1w,mon" (RecurFrequency Week 1 1)
+  , t "2w,sat" (RecurFrequency Week 2 6)
   ]
   where t str expected = "parseFrequencyTests parses " ++ str ~:
                           expected ~=? (parseFrequency str)
