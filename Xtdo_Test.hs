@@ -83,6 +83,12 @@ parseFrequencyTests =
 
 calculateNextOccurrenceTests =
   [ t (d 2011 2 1) (RecurFrequency Day 1 0) (d 2011 2 2)
+  , t (d 2011 2 1) (RecurFrequency Day 2 0) (d 2011 2 3)
+  , t (d 2011 7 10) (RecurFrequency Week 1 0) (d 2011 7 17)
+  , t (d 2011 7 11) (RecurFrequency Week 1 0) (d 2011 7 17)
+  , t (d 2011 7 16) (RecurFrequency Week 1 0) (d 2011 7 17)
+  , t (d 2011 7 11) (RecurFrequency Week 2 0) (d 2011 7 24)
+  , t (d 2011 7 10) (RecurFrequency Week 1 1) (d 2011 7 11)
   ]
   where t today frequency expected =
           "calculateNextOccurrence for " ++ (show frequency) ~:

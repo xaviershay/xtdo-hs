@@ -6,6 +6,7 @@ import System.Environment
 import System.Console.ANSI
 
 import Data.Time.Calendar
+import Data.Time.Calendar.OrdinalDate
 import Data.Time.Clock
 import Data.List
 import Data.List.Split
@@ -136,9 +137,27 @@ parseFrequency x = RecurFrequency interval multiplier (parseOffset offset)
         charToInterval "d" = Day
         charToInterval "w" = Week
 
+
+data StepDirection = Forward | Backward
+
 calculateNextOccurrence :: Day -> RecurFrequency -> Day
-calculateNextOccurrence today frequency =
-  addDays 1 today
+
+calculateNextOccurrence today (RecurFrequency Day multiplier _) =
+  (intervalToModifier Day) (toInteger multiplier) today
+
+calculateNextOccurrence today (RecurFrequency Week multiplier offset) =
+  head $ dropWhile (\x -> x <= today) (frequenciesFrom startingDay)
+  where frequenciesFrom day     = frequencySeq $
+                                  addDays (toInteger offset) (startOfWeek day)
+        frequencySeq day        = day:(frequencySeq $ stepByInterval day Forward)
+        startingDay             = stepByInterval today Backward
+        startOfWeek day         = fromSundayStartWeek (year day) (week day) 0
+        year                    = fst . toOrdinalDate
+        week                    = fst . sundayStartWeek
+        stepByInterval day direction =
+          (intervalToModifier Week) (toInteger multiplier * (modifier direction)) day
+          where modifier Forward = 1
+                modifier Backward = -1
 
 replaceTasks :: ProgramData -> [Task] -> ProgramData
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
@@ -175,6 +194,10 @@ day today when = modifier today
           charToModifier "m" = addGregorianMonthsClip
           charToModifier "y" = addGregorianYearsClip
           charToModifier other = error other
+
+intervalToModifier :: DayInterval -> (Integer -> Day -> Day)
+intervalToModifier Day = addDays
+intervalToModifier Week = addDays . (* 7)
 
 prettyFormatter :: [TaskCategory] -> ProgramData -> IO ()
 prettyFormatter categoriesToDisplay programData = do
