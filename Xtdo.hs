@@ -54,11 +54,15 @@ type RecurOffset     = Int
 data RecurFrequency = RecurFrequency DayInterval RecurMultiplier RecurOffset deriving (Show, Eq)
 
 xtdo :: [String] -> ProgramData -> Day -> (ProgramData, Formatter)
-xtdo ["l"]      x t = (createRecurring t x, PrettyFormatter [Today])
-xtdo ["l", "a"] x t = (createRecurring t x, PrettyFormatter [Today, Next, Scheduled])
-xtdo ["l", "c"] x t = (createRecurring t x, CompletionFormatter [Today, Next, Scheduled])
-xtdo ["r", "l"] x _ = (x, RecurringFormatter)
-xtdo ("r":"a":frequencyString:xs) x today =
+xtdo args programData today = (createRecurring today $ fst result, snd result)
+  where result = xtdo' args programData today
+
+xtdo' :: [String] -> ProgramData -> Day -> (ProgramData, Formatter)
+xtdo' ["l"]      x t = (x, PrettyFormatter [Today])
+xtdo' ["l", "a"] x t = (x, PrettyFormatter [Today, Next, Scheduled])
+xtdo' ["l", "c"] x t = (x, CompletionFormatter [Today, Next, Scheduled])
+xtdo' ["r", "l"] x _ = (x, RecurringFormatter)
+xtdo' ("r":"a":frequencyString:xs) x today =
   (addRecurring x makeRecurring, RecurringFormatter)
   where makeRecurring =
           RecurringTaskDefinition{
@@ -70,12 +74,12 @@ xtdo ("r":"a":frequencyString:xs) x today =
         frequency      = parseFrequency frequencyString
         nextOccurrence = calculateNextOccurrence today frequency
 
-xtdo ("d":xs)   x t = (createRecurring t $ replaceTasks x [task | task <- tasks x,
+xtdo' ("d":xs)   x t = (replaceTasks x [task | task <- tasks x,
                            hyphenize (name task) /= hyphenize (intercalate "-" xs)
                          ],
                          PrettyFormatter [Today, Next])
 
-xtdo ("b":when:xs) x today
+xtdo' ("b":when:xs) x today
   | when =~ "([0-9]+)([dwmy]?)" =
     run taskToBump
     where taskToBump      = find ((==) taskNameToBump . hyphenize . name) (tasks x)
@@ -84,22 +88,20 @@ xtdo ("b":when:xs) x today
           wrapData x      = (x, PrettyFormatter [Today, Next, Scheduled])
           run Nothing     = wrapData x
           run (Just task) = wrapData $ replaceTasks x $
-                              (delete task (tasks x)) ++
-                              [task{
+                              task{
                                 category  = categoryForScheduled
                                               today
                                               (Just parsedDay),
                                 scheduled = Just parsedDay
-                              }]
+                              }:(delete task (tasks x))
 
-xtdo ("a":when:xs) x today
+xtdo' ("a":when:xs) x today
   | when =~ "([0-9]+)([dwmy]?)" = run (Just parsedDay) xs
-  | otherwise                   = run Nothing          allAsName
+  | otherwise                   = run Nothing          (when:xs)
   where
-    allAsName = [when] ++ xs
     parsedDay = day today when
 
-    run scheduled name = ( createRecurring today $ addTask x blankTask{
+    run scheduled name = ( addTask x blankTask{
                              name      = intercalate " " name,
                              scheduled = scheduled,
                              category  = categoryForScheduled today scheduled
@@ -213,7 +215,7 @@ replaceRecurring x recurring = ProgramData{tasks=tasks x,recurring=recurring}
 addTask :: ProgramData -> Task -> ProgramData
 addTask programData task =
   ProgramData{
-    tasks     = (tasks programData) ++ [task],
+    tasks     = task:(tasks programData),
     recurring = (recurring programData)
   }
 
@@ -221,7 +223,7 @@ addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 addRecurring programData definition =
   ProgramData{
     tasks     = tasks programData,
-    recurring = (recurring programData) ++ [definition]
+    recurring = definition:(recurring programData)
   }
 
 day :: Day -> String -> Day
