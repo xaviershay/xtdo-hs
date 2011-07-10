@@ -304,24 +304,12 @@ recurringFormatter programData = do
 
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
-finish :: (ProgramData, Formatter) -> IO ()
-finish (programData, formatter) = do
-  encodeFile "tasks.yml" $ Mapping
-    [ ("tasks", Sequence $ map toYaml (tasks programData))
-    , ("recurring", Sequence $ map recurToYaml (recurring programData))]
+format :: (ProgramData, Formatter) -> IO ()
+format (programData, formatter) = do
   doFormatting formatter programData
   where doFormatting (PrettyFormatter x)     = prettyFormatter x
         doFormatting (CompletionFormatter x) = completionFormatter x
         doFormatting (RecurringFormatter   ) = recurringFormatter
-        recurToYaml x =
-          Mapping [ ("templateName",   Scalar (templateName x))
-                  , ("nextOccurrence", Scalar (dayToString       $ nextOccurrence x))
-                  , ("frequency",      Scalar (frequencyToString $ frequency x))
-                  ]
-        toYaml Task{name=x, scheduled=Nothing}   =
-          Mapping [("name", Scalar x)]
-        toYaml Task{name=x, scheduled=Just when} =
-          Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
 
 
 dayToString :: Day -> String
@@ -333,15 +321,30 @@ frequencyToString x = "1d"
 
 flatten = foldl (++) [] -- Surely this is in the stdlib?
 
-loadYaml :: IO ProgramData
-loadYaml = do
-  object        <- join $ decodeFile "tasks.yml"
+loadYaml :: String -> IO ProgramData
+loadYaml path = do
+  object        <- join $ decodeFile path
   mappings      <- fromMapping object
   tasksSequence <- lookupSequence "tasks" mappings
   tasks         <- mapM extractTask tasksSequence
   recurSequence <- lookupSequence "recurring" mappings
   recurring     <- mapM extractRecurring recurSequence
   return ProgramData {tasks=tasks,recurring=recurring}
+
+saveYaml path programData = do
+  encodeFile path $ Mapping
+    [ ("tasks", Sequence $ map toYaml (tasks programData))
+    , ("recurring", Sequence $ map recurToYaml (recurring programData))]
+  where
+    recurToYaml x =
+      Mapping [ ("templateName",   Scalar (templateName x))
+              , ("nextOccurrence", Scalar (dayToString       $ nextOccurrence x))
+              , ("frequency",      Scalar (frequencyToString $ frequency x))
+              ]
+    toYaml Task{name=x, scheduled=Nothing}   =
+      Mapping [("name", Scalar x)]
+    toYaml Task{name=x, scheduled=Just when} =
+      Mapping [("name", Scalar x), ("scheduled", Scalar $ dayToString when)]
 
 extractRecurring
   :: (Failure ObjectExtractError m) =>
