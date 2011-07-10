@@ -91,6 +91,12 @@ calculateNextOccurrenceTests =
   , t (d 2011 7 11) (RecurFrequency Week 2 1) (d 2011 7 25)
   , t (d 2011 7 11) (RecurFrequency Week 2 2) (d 2011 7 12)
   , t (d 2011 7 10) (RecurFrequency Week 1 1) (d 2011 7 11)
+  , t (d 2011 7 1) (RecurFrequency Month 1 0) (d 2011 8 1)
+  , t (d 2011 7 2) (RecurFrequency Month 1 0) (d 2011 8 1)
+  , t (d 2011 7 1) (RecurFrequency Month 1 1) (d 2011 7 2)
+  , t (d 2011 1 2) (RecurFrequency Year  1 0) (d 2012 1 1)
+  , t (d 2011 1 2) (RecurFrequency Year  1 0) (d 2012 1 1)
+  , t (d 2011 1 1) (RecurFrequency Year  1 1) (d 2011 1 2)
   ]
   where t today frequency expected =
           "calculateNextOccurrence for " ++ (show frequency) ~:

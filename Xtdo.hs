@@ -141,23 +141,33 @@ parseFrequency x = RecurFrequency interval multiplier (parseOffset offset)
 data StepDirection = Forward | Backward
 
 calculateNextOccurrence :: Day -> RecurFrequency -> Day
-
-calculateNextOccurrence today (RecurFrequency Day multiplier _) =
-  (intervalToModifier Day) (toInteger multiplier) today
-
-calculateNextOccurrence today (RecurFrequency Week multiplier offset) =
+calculateNextOccurrence today (RecurFrequency interval multiplier offset) =
   head $ dropWhile (\x -> x <= today) (frequenciesFrom startingDay)
   where frequenciesFrom day     = frequencySeq $
-                                  addDays (toInteger offset) (startOfWeek day)
+                                  addDays (toInteger offset) (startOfInterval interval day)
         frequencySeq day        = day:(frequencySeq $ stepByInterval day Forward)
         startingDay             = stepByInterval today Backward
-        startOfWeek day         = fromSundayStartWeek (year day) (week day) 0
-        year                    = fst . toOrdinalDate
-        week                    = fst . sundayStartWeek
         stepByInterval day direction =
-          (intervalToModifier Week) (toInteger multiplier * (modifier direction)) day
+          (intervalToModifier interval) (toInteger multiplier * (modifier direction)) day
           where modifier Forward = 1
                 modifier Backward = -1
+
+
+startOfInterval Day   day = day
+startOfInterval Week  day = fromSundayStartWeek (year day) (week day) 0
+startOfInterval Month day = fromGregorian (year day) (month day) 1
+startOfInterval Year  day = fromGregorian (year day) 1 1
+
+-- These functions extract components out of a given Day
+year :: Day -> Integer
+year  = fst . toOrdinalDate
+
+month :: Day -> Int
+month = month' . toGregorian
+  where month' (_, x, _) = x
+
+week :: Day -> Int
+week  = fst . sundayStartWeek
 
 replaceTasks :: ProgramData -> [Task] -> ProgramData
 replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
@@ -198,6 +208,8 @@ day today when = modifier today
 intervalToModifier :: DayInterval -> (Integer -> Day -> Day)
 intervalToModifier Day = addDays
 intervalToModifier Week = addDays . (* 7)
+intervalToModifier Month = addGregorianMonthsClip
+intervalToModifier Year  = addGregorianYearsClip
 
 prettyFormatter :: [TaskCategory] -> ProgramData -> IO ()
 prettyFormatter categoriesToDisplay programData = do
