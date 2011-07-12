@@ -92,9 +92,17 @@ xtdoRecurTests =
       frequency=(RecurFrequency Day 1 0),
       nextOccurrence=tomorrow}] ~=?
       (extractRecurring $ run ["a", "1d", "newtask"] noData)
+  , "d removes a task" ~:
+    [] ~=? (extractRecurring $ run ["d", "existing", "task"] testData)
   ]
   where run args programData = xtdo (["r"] ++ args) programData today
-        testData = noData
+        testData = noData{
+          recurring = [RecurringTaskDefinition{
+            templateName   = "existing task",
+            frequency      = (RecurFrequency Day 1 0),
+            nextOccurrence = tomorrow
+          }]
+        }
         today = (d 2011 1 1)
         tomorrow = (d 2011 1 2)
         extractRecurring (x, y) = recurring x

@@ -74,6 +74,11 @@ xtdo' ("r":"a":frequencyString:xs) x today =
         frequency      = parseFrequency frequencyString
         nextOccurrence = calculateNextOccurrence today frequency
 
+xtdo' ("r":"d":xs) x t =
+  (extractData $ deleteRecurringByName x xs, RecurringFormatter)
+  where
+    extractData (x, _) = x
+
 xtdo' ("d":xs)   x t =
   (extractData $ deleteTaskByName x xs, PrettyFormatter [Today, Next])
   where
@@ -230,6 +235,22 @@ deleteTaskByName x nameString =
         taskName        = hyphenize $ intercalate " " nameString
         run Nothing     = (x, Nothing)
         run (Just task) = (deleteTask x task, Just task)
+
+deleteRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
+deleteRecurring programData task =
+  ProgramData{
+    tasks     = (tasks programData),
+    recurring = delete task (recurring programData)
+  }
+
+deleteRecurringByName :: 
+  ProgramData -> [String] -> (ProgramData, Maybe RecurringTaskDefinition)
+deleteRecurringByName x nameString =
+  run toDelete
+  where toDelete    = find ((==) taskName . hyphenize . templateName) (recurring x)
+        taskName        = hyphenize $ intercalate " " nameString
+        run Nothing     = (x, Nothing)
+        run (Just task) = (deleteRecurring x task, Just task)
 
 addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 addRecurring programData definition =
