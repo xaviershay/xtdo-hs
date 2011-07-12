@@ -216,16 +216,14 @@ replaceRecurring x recurring = ProgramData{tasks=tasks x,recurring=recurring}
 
 addTask :: ProgramData -> Task -> ProgramData
 addTask programData task =
-  ProgramData{
-    tasks     = task:(tasks programData),
-    recurring = (recurring programData)
+  programData {
+    tasks     = task:(tasks programData)
   }
 
 deleteTask :: ProgramData -> Task -> ProgramData
 deleteTask programData task =
-  ProgramData{
-    tasks     = delete task (tasks programData),
-    recurring = (recurring programData)
+  programData {
+    tasks     = delete task (tasks programData)
   }
 
 deleteTaskByName :: ProgramData -> [String] -> (ProgramData, Maybe Task)
@@ -238,12 +236,11 @@ deleteTaskByName x nameString =
 
 deleteRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 deleteRecurring programData task =
-  ProgramData{
-    tasks     = (tasks programData),
+  programData {
     recurring = delete task (recurring programData)
   }
 
-deleteRecurringByName :: 
+deleteRecurringByName ::
   ProgramData -> [String] -> (ProgramData, Maybe RecurringTaskDefinition)
 deleteRecurringByName x nameString =
   run toDelete
@@ -254,8 +251,7 @@ deleteRecurringByName x nameString =
 
 addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 addRecurring programData definition =
-  ProgramData{
-    tasks     = tasks programData,
+  programData {
     recurring = definition:(recurring programData)
   }
 
