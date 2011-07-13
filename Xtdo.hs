@@ -70,7 +70,7 @@ xtdo' ("r":"a":frequencyString:xs) x today =
             templateName   = name,
             nextOccurrence = nextOccurrence
           }
-        name           = intercalate " " xs
+        name           = unwords xs
         frequency      = parseFrequency frequencyString
         nextOccurrence = calculateNextOccurrence today frequency
 
@@ -104,7 +104,7 @@ xtdo' ("a":when:xs) x today
     parsedDay = day today when
 
     run scheduled name = ( addTask x blankTask{
-                             name      = intercalate " " name,
+                             name      = unwords name,
                              scheduled = scheduled,
                              category  = categoryForScheduled today scheduled
                            }
@@ -151,11 +151,11 @@ daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
 parseFrequency :: String -> RecurFrequency
 parseFrequency x =
   RecurFrequency interval multiplier (parseOffset offset)
-  where matches = head $ (x =~ regex :: [[String]])
+  where matches = head (x =~ regex :: [[String]])
         multiplier = read (matches !! 1)
         interval   = charToInterval (matches !! 2)
-        offset     = (matches !! 3)
-        regex      = "([0-9]+)([dwmy]),?([0-9]+|" ++ (intercalate "|" daysOfWeek) ++ ")?"
+        offset     = matches !! 3
+        regex      = "([0-9]+)([dwmy]),?([0-9]+|" ++ intercalate "|" daysOfWeek ++ ")?"
         parseOffset :: String -> Int
         parseOffset x
           | x == ""             = 0
@@ -184,8 +184,8 @@ calculateNextOccurrence today (RecurFrequency interval multiplier offset) =
         occurencesFrom day     = day:(occurencesFrom $ stepByInterval day Forward)
         startDay               = stepByInterval today Backward
         stepByInterval day dir =
-          (intervalToModifier interval)
-          (toInteger multiplier * (modifier dir))
+          intervalToModifier interval
+          (toInteger multiplier * modifier dir)
           day
           where modifier Forward  = 1
                 modifier Backward = -1
@@ -217,7 +217,7 @@ replaceRecurring x recurring = ProgramData{tasks=tasks x,recurring=recurring}
 addTask :: ProgramData -> Task -> ProgramData
 addTask programData task =
   programData {
-    tasks     = task:(tasks programData)
+    tasks     = task:tasks programData
   }
 
 deleteTask :: ProgramData -> Task -> ProgramData
@@ -230,7 +230,7 @@ deleteTaskByName :: ProgramData -> [String] -> (ProgramData, Maybe Task)
 deleteTaskByName x nameString =
   run taskToDelete
   where taskToDelete    = find ((==) taskName . hyphenize . name) (tasks x)
-        taskName        = hyphenize $ intercalate " " nameString
+        taskName        = hyphenize $ unwords nameString
         run Nothing     = (x, Nothing)
         run (Just task) = (deleteTask x task, Just task)
 
@@ -245,25 +245,25 @@ deleteRecurringByName ::
 deleteRecurringByName x nameString =
   run toDelete
   where toDelete    = find ((==) taskName . hyphenize . templateName) (recurring x)
-        taskName        = hyphenize $ intercalate " " nameString
+        taskName        = hyphenize $ unwords nameString
         run Nothing     = (x, Nothing)
         run (Just task) = (deleteRecurring x task, Just task)
 
 addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 addRecurring programData definition =
   programData {
-    recurring = definition:(recurring programData)
+    recurring = definition:recurring programData
   }
 
 day :: Day -> String -> Day
 day today when = modifier today
-  where   matches  = head $ (when =~ "([0-9]+)([dwmy]?)" :: [[String]])
-          offset   = read $ (matches !! 1)
+  where   matches  = head (when =~ "([0-9]+)([dwmy]?)" :: [[String]])
+          offset   = read (matches !! 1)
           modifier = charToModifier (matches !! 2) offset
 
           -- Converts a char into a function that will transform a date
           -- by the given offset
-          charToModifier :: String -> (Integer -> Day -> Day)
+          charToModifier :: String -> Integer -> Day -> Day
           charToModifier ""  = addDays
           charToModifier "d" = addDays
           charToModifier "w" = addDays . (* 7)
@@ -276,7 +276,7 @@ categoryForScheduled today (Just day)
   | day == today = Today
   | otherwise    = Scheduled
 
-intervalToModifier :: DayInterval -> (Integer -> Day -> Day)
+intervalToModifier :: DayInterval -> Integer -> Day -> Day
 intervalToModifier Day = addDays
 intervalToModifier Week = addDays . (* 7)
 intervalToModifier Month = addGregorianMonthsClip
@@ -292,7 +292,7 @@ prettyFormatter categoriesToDisplay programData = do
     putStrLn ""
 
     setSGR [Reset]
-    forM [t | t <- tasks programData, category t == currentCategory] (\task -> do
+    forM [t | t <- tasks programData, category t == currentCategory] (\task ->
       putStrLn $ "  " ++ name task
       )
     )
@@ -300,9 +300,7 @@ prettyFormatter categoriesToDisplay programData = do
 
 completionFormatter :: [TaskCategory] -> ProgramData -> IO ()
 completionFormatter categoriesToDisplay programData = do
-  forM [t | t <- tasks programData] (\task -> do
-    putStrLn $ hyphenize (name task)
-    )
+  forM (tasks programData) (putStrLn . hyphenize . name)
   putStr ""
 
 recurringFormatter :: ProgramData -> IO ()
@@ -310,11 +308,11 @@ recurringFormatter programData = do
   putStrLn ""
 
   setSGR [ SetColor Foreground Dull Yellow ]
-  putStrLn $ "==== Recurring"
+  putStrLn "==== Recurring"
   putStrLn ""
 
   setSGR [Reset]
-  forM (recurring programData) (\definition -> do
+  forM (recurring programData) (\definition ->
     putStrLn $ "  " ++ templateName definition
     )
   putStrLn ""
@@ -322,7 +320,7 @@ recurringFormatter programData = do
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
 format :: (ProgramData, Formatter) -> IO ()
-format (programData, formatter) = do
+format (programData, formatter) =
   doFormatting formatter programData
   where doFormatting (PrettyFormatter x)     = prettyFormatter x
         doFormatting (CompletionFormatter x) = completionFormatter x
@@ -348,7 +346,7 @@ loadYaml path = do
   recurring     <- mapM extractRecurring recurSequence
   return ProgramData {tasks=tasks,recurring=recurring}
 
-saveYaml path programData = do
+saveYaml path programData =
   encodeFile path $ Mapping
     [ ("tasks", Sequence $ map toYaml (tasks programData))
     , ("recurring", Sequence $ map recurToYaml (recurring programData))]
@@ -396,5 +394,5 @@ extractTask task = do
 toDay :: Maybe String -> Maybe Day
 toDay Nothing = Nothing
 toDay (Just str) =
-  Just $ fromGregorian (toInteger $ x!!0) (x!!1) (x!!2)
-  where x = (map read $ splitOn "-" str :: [Int])
+  Just $ fromGregorian (toInteger $ head x) (x!!1) (x!!2)
+  where x = map read $ splitOn "-" str :: [Int]
