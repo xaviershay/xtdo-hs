@@ -113,12 +113,13 @@ xtdo' ("a":when:xs) x today
 
 addCategory tasks today = map (addCategoryToTask today) tasks
   where
-    addCategoryToTask today Task{name=n,scheduled=Just s}
-      | s == today = blankTask{name=n,scheduled=Just s,category=Today}
-      | otherwise  = blankTask{name=n,scheduled=Just s,category=Scheduled}
+    addCategoryToTask today Task{name=n,scheduled=Nothing} =
+      blankTask{name=n,scheduled=Nothing,category=Next}
+    addCategoryToTask today task =
+      task { category = if scheduled task == Just today
+                          then Today
+                          else Scheduled }
 
-    addCategoryToTask today Task{name=n,scheduled=Nothing}
-                 = blankTask{name=n,scheduled=Nothing,category=Next}
 
 createRecurring :: Day -> ProgramData -> ProgramData
 createRecurring today programData =
@@ -301,8 +302,8 @@ recurringFormatter programData = do
   putStrLn ""
 
   setSGR [Reset]
-  forM_ (recurring programData) (\definition ->
-    putStrLn $ "  " ++ templateName definition
+  forM_ (recurring programData) (
+    putStrLn . ("  " ++) . templateName
     )
   putStrLn ""
 
@@ -322,8 +323,6 @@ dayToString = intercalate "-" . map show . toList . toGregorian
 
 frequencyToString :: RecurFrequency -> String
 frequencyToString x = "1d"
-
-flatten = foldl (++) [] -- Surely this is in the stdlib?
 
 loadYaml :: String -> IO ProgramData
 loadYaml path = do
@@ -365,12 +364,7 @@ extractRecurring x = do
     }
 
 parseDay :: String -> Day
-parseDay x =
-  unwrapDay (toDay $ Just x)
-  where unwrapDay :: Maybe Day -> Day
-        unwrapDay Nothing  = error x
-        unwrapDay (Just x) = x
-
+parseDay x = maybe (error x) id (toDay $ Just x)
 
 extractTask
   :: (Failure ObjectExtractError m) => StringObject -> m Task
