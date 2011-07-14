@@ -181,7 +181,7 @@ calculateNextOccurrence today (RecurFrequency interval multiplier offset) =
   where firstOccurrence        = addDays
                                   (toInteger offset)
                                   (startOfInterval interval startDay)
-        occurencesFrom day     = day:(occurencesFrom $ stepByInterval day Forward)
+        occurencesFrom day     = day:occurencesFrom (stepByInterval day Forward)
         startDay               = stepByInterval today Backward
         stepByInterval day dir =
           intervalToModifier interval
@@ -238,7 +238,7 @@ deleteItemByName nameOf readItems replaceItems programData nameString =
     itemToDelete      = find ((==) taskName . hyphenize . nameOf) items
     run Nothing       = (programData, Nothing)
     run (Just item)   = (deleteItem programData item, Just item)
-    deleteItem x item = replaceItems x (delete item $ items)
+    deleteItem x item = replaceItems x (delete item items)
 
 -- Day parsing functions
 
@@ -273,7 +273,7 @@ intervalToModifier Year  = addGregorianYearsClip
 --
 prettyFormatter :: [TaskCategory] -> ProgramData -> IO ()
 prettyFormatter categoriesToDisplay programData = do
-  forM categoriesToDisplay (\currentCategory -> do
+  forM_ categoriesToDisplay (\currentCategory -> do
     putStrLn ""
 
     setSGR [ SetColor Foreground Dull Yellow ]
@@ -281,7 +281,7 @@ prettyFormatter categoriesToDisplay programData = do
     putStrLn ""
 
     setSGR [Reset]
-    forM [t | t <- tasks programData, category t == currentCategory] (\task ->
+    forM_ [t | t <- tasks programData, category t == currentCategory] (\task ->
       putStrLn $ "  " ++ name task
       )
     )
@@ -289,7 +289,7 @@ prettyFormatter categoriesToDisplay programData = do
 
 completionFormatter :: [TaskCategory] -> ProgramData -> IO ()
 completionFormatter categoriesToDisplay programData = do
-  forM (tasks programData) (putStrLn . hyphenize . name)
+  forM_ (tasks programData) (putStrLn . hyphenize . name)
   putStr ""
 
 recurringFormatter :: ProgramData -> IO ()
@@ -301,7 +301,7 @@ recurringFormatter programData = do
   putStrLn ""
 
   setSGR [Reset]
-  forM (recurring programData) (\definition ->
+  forM_ (recurring programData) (\definition ->
     putStrLn $ "  " ++ templateName definition
     )
   putStrLn ""
