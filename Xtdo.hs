@@ -208,52 +208,39 @@ week :: Day -> Int
 week  = fst . sundayStartWeek
 
 -- Functions to manipulate ProgramData
-replaceTasks :: ProgramData -> [Task] -> ProgramData
-replaceTasks x tasks = ProgramData{tasks=tasks,recurring=recurring x}
-
-replaceRecurring :: ProgramData -> [RecurringTaskDefinition] -> ProgramData
-replaceRecurring x recurring = ProgramData{tasks=tasks x,recurring=recurring}
-
-addTask :: ProgramData -> Task -> ProgramData
-addTask programData task =
-  programData {
-    tasks     = task:tasks programData
-  }
-
-deleteTask :: ProgramData -> Task -> ProgramData
-deleteTask programData task =
-  programData {
-    tasks     = delete task (tasks programData)
-  }
+addTask         programData task       = replaceTasks     programData (task:tasks programData)
+addRecurring    programData definition = replaceRecurring programData (definition:recurring programData)
 
 deleteTaskByName :: ProgramData -> [String] -> (ProgramData, Maybe Task)
-deleteTaskByName x nameString =
-  run taskToDelete
-  where taskToDelete    = find ((==) taskName . hyphenize . name) (tasks x)
-        taskName        = hyphenize $ unwords nameString
-        run Nothing     = (x, Nothing)
-        run (Just task) = (deleteTask x task, Just task)
+deleteTaskByName = deleteItemByName name tasks replaceTasks
 
-deleteRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
-deleteRecurring programData task =
-  programData {
-    recurring = delete task (recurring programData)
-  }
+deleteRecurringByName
+  :: ProgramData -> [String] -> (ProgramData, Maybe RecurringTaskDefinition)
+deleteRecurringByName = deleteItemByName templateName recurring replaceRecurring
 
-deleteRecurringByName ::
-  ProgramData -> [String] -> (ProgramData, Maybe RecurringTaskDefinition)
-deleteRecurringByName x nameString =
-  run toDelete
-  where toDelete    = find ((==) taskName . hyphenize . templateName) (recurring x)
-        taskName        = hyphenize $ unwords nameString
-        run Nothing     = (x, Nothing)
-        run (Just task) = (deleteRecurring x task, Just task)
+-- Private functions to manipulate ProgramData
+replaceTasks     x tasks     = x { tasks = tasks }
+replaceRecurring x recurring = x { recurring = recurring }
 
-addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
-addRecurring programData definition =
-  programData {
-    recurring = definition:recurring programData
-  }
+deleteItemByName ::
+     (Eq a)                              -- Entities must be comparable
+  => (a -> String)                       -- The name of an item
+  -> (ProgramData -> [a])                -- How to get a list of entities
+  -> (ProgramData -> [a] -> ProgramData) -- How to store a list of entities
+  -> ProgramData                         -- The current program data
+  -> [String]                            -- The name of the item to delete
+  -> (ProgramData, Maybe a)
+deleteItemByName nameOf readItems replaceItems programData nameString =
+  run itemToDelete
+  where
+    items             = readItems programData
+    taskName          = hyphenize $ unwords nameString
+    itemToDelete      = find ((==) taskName . hyphenize . nameOf) items
+    run Nothing       = (programData, Nothing)
+    run (Just item)   = (deleteItem programData item, Just item)
+    deleteItem x item = replaceItems x (delete item $ items)
+
+-- Day parsing functions
 
 day :: Day -> String -> Day
 day today when = modifier today
@@ -282,6 +269,8 @@ intervalToModifier Week = addDays . (* 7)
 intervalToModifier Month = addGregorianMonthsClip
 intervalToModifier Year  = addGregorianYearsClip
 
+-- Formatters
+--
 prettyFormatter :: [TaskCategory] -> ProgramData -> IO ()
 prettyFormatter categoriesToDisplay programData = do
   forM categoriesToDisplay (\currentCategory -> do
