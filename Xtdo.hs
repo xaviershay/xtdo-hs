@@ -226,13 +226,21 @@ deleteTask programData task =
     tasks     = delete task (tasks programData)
   }
 
-deleteTaskByName :: ProgramData -> [String] -> (ProgramData, Maybe Task)
-deleteTaskByName x nameString =
+deleteXXX :: ProgramData 
+          -> [String]                           -- the name thing
+          -> (a -> String)                      -- the name of an `a`
+          -> (ProgramData -> [a])               -- how to get the the as
+          -> (ProgramData -> a -> ProgramData)  -- how to delete an a
+          -> (ProgramData, Maybe a)
+deleteXXX pd nameString nameOf readItems deleteItem =
   run taskToDelete
-  where taskToDelete    = find ((==) taskName . hyphenize . name) (tasks x)
+  where taskToDelete    = find ((==) taskName . hyphenize . nameOf) (readItems pd)
         taskName        = hyphenize $ unwords nameString
-        run Nothing     = (x, Nothing)
-        run (Just task) = (deleteTask x task, Just task)
+        run Nothing     = (pd, Nothing)
+        run (Just task) = (deleteItem pd task, Just task)
+
+deleteTaskByName :: ProgramData -> [String] -> (ProgramData, Maybe Task)
+deleteTaskByName x nameString = deleteXXX x nameString name tasks deleteTask
 
 deleteRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 deleteRecurring programData task =
@@ -242,12 +250,7 @@ deleteRecurring programData task =
 
 deleteRecurringByName ::
   ProgramData -> [String] -> (ProgramData, Maybe RecurringTaskDefinition)
-deleteRecurringByName x nameString =
-  run toDelete
-  where toDelete    = find ((==) taskName . hyphenize . templateName) (recurring x)
-        taskName        = hyphenize $ unwords nameString
-        run Nothing     = (x, Nothing)
-        run (Just task) = (deleteRecurring x task, Just task)
+deleteRecurringByName x nameString = deleteXXX x nameString templateName recurring deleteRecurring
 
 addRecurring :: ProgramData -> RecurringTaskDefinition -> ProgramData
 addRecurring programData definition =
