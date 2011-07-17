@@ -88,7 +88,7 @@ xtdo' ("d":xs)   x t =
 
 xtdo' ("b":when:xs) x today
   | when =~ "([0-9]+)([dwmy]?)" =
-    (run $ deleteTaskByName x xs, PrettyFormatter [Today, Next, Scheduled])
+    (run $ deleteTaskByName x xs, PrettyFormatter [Today, Next])
     where
       parsedDay          = day today when
       run (x, Nothing)   = x
@@ -110,7 +110,7 @@ xtdo' ("a":when:xs) x today
                              scheduled = scheduled,
                              category  = categoryForScheduled today scheduled
                            }
-                         , PrettyFormatter [categoryForScheduled today scheduled]
+                         , PrettyFormatter [Today, Next]
                          )
 
 addCategory tasks today = map (addCategoryToTask today) tasks
