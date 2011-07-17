@@ -11,6 +11,8 @@ import Data.Time.Clock
 import Data.List
 import Data.List.Split
 
+import Data.Maybe
+
 import Data.Object
 import Data.Object.Yaml
 import Control.Monad
@@ -364,7 +366,7 @@ extractRecurring x = do
     }
 
 parseDay :: String -> Day
-parseDay x = maybe (error x) id (toDay $ Just x)
+parseDay x = fromMaybe (error x) (toDay $ Just x)
 
 extractTask
   :: (Failure ObjectExtractError m) => StringObject -> m Task
