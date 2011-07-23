@@ -21,6 +21,7 @@ import Control.Failure
 
 import Text.Regex.Posix
 import Text.Regex(subRegex, mkRegex)
+import Text.Printf
 
 data TaskCategory = Today | Next | Scheduled deriving(Show, Eq)
 
@@ -305,9 +306,12 @@ recurringFormatter programData = do
 
   setSGR [Reset]
   forM_ (recurring programData) (
-    putStrLn . ("  " ++) . templateName
+    putStrLn . ("  " ++) . recurringLine
     )
   putStrLn ""
+  where recurringLine x = printf "%-7s %s"
+                            (frequencyToString $ frequency x)
+                            (templateName x)
 
 hyphenize x = subRegex (mkRegex "[^a-zA-Z0-9]") x "-"
 
