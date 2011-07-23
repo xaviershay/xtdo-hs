@@ -324,7 +324,13 @@ dayToString = intercalate "-" . map show . toList . toGregorian
   where toList (a,b,c) = [a, toInteger b, toInteger c]
 
 frequencyToString :: RecurFrequency -> String
-frequencyToString x = "1d"
+frequencyToString (RecurFrequency Day multiplier _)       = show multiplier ++ "d"
+frequencyToString (RecurFrequency Week multiplier offset) =
+  show multiplier ++ "w," ++ (daysOfWeek !! offset)
+frequencyToString (RecurFrequency Month multiplier offset) =
+  show multiplier ++ "m," ++ show (offset + 1)
+frequencyToString (RecurFrequency Year multiplier offset) =
+  show multiplier ++ "y," ++ show (offset + 1)
 
 loadYaml :: String -> IO ProgramData
 loadYaml path = do

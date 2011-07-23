@@ -107,7 +107,7 @@ xtdoRecurTests =
         tomorrow = (d 2011 1 2)
         extractRecurring (x, y) = recurring x
 
-parseFrequencyTests =
+recurTestData t =
   [ t "1d"     (RecurFrequency Day 1 0)
   , t "2d"     (RecurFrequency Day 2 0)
   , t "1w,sun" (RecurFrequency Week 1 0)
@@ -118,8 +118,14 @@ parseFrequencyTests =
   , t "1y,1"   (RecurFrequency Year 1 0)
   , t "2y,10"  (RecurFrequency Year 2 9)
   ]
+
+parseFrequencyTests = recurTestData t
   where t str expected = "parseFrequencyTests parses " ++ str ~:
                           expected ~=? (parseFrequency str)
+
+frequencyToStringTests = recurTestData t
+  where t expected freq = "frequenccyToString formats " ++ expected ~:
+                          expected ~=? (frequencyToString freq)
 
 calculateNextOccurrenceTests =
   [ t (d 2011 2 1) (RecurFrequency Day 1 0) (d 2011 2 2)
@@ -188,6 +194,7 @@ main = runTestTT $ TestList ( xtdoTaskTests ++
                               xtdoRecurTests ++
                               xtdoBumpTests ++
                               parseFrequencyTests ++
+                              frequencyToStringTests ++
                               calculateNextOccurrenceTests ++
                               createRecurringTests ++
                               dayTests )
