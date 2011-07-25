@@ -1,0 +1,5 @@
+- When to tasks.yml exists
+- Expand ~ in env var
+- recur completion
+- error handling "t r a 1 something"
+- t a show scheduled not next
