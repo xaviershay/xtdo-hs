@@ -88,7 +88,7 @@ xtdo' ("d":xs)   x t =
     extractData (x, _) = x
 
 xtdo' ("b":when:xs) x today
-  | when =~ "([0-9]+)([dwmy]?)" =
+  | when =~ "^([0-9]+)([dwmy]?)$" =
     (run $ deleteTaskByName x xs, PrettyFormatter [Today, Next])
     where
       parsedDay          = day today when
@@ -101,7 +101,7 @@ xtdo' ("b":when:xs) x today
                            }
 
 xtdo' ("a":when:xs) x today
-  | when =~ "([0-9]+)([dwmy]?)" = run (Just parsedDay) xs
+  | when =~ "^([0-9]+)([dwmy]?)$" = run (Just parsedDay) xs
   | otherwise                   = run Nothing          (when:xs)
   where
     parsedDay = day today when

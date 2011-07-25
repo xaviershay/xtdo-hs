@@ -35,6 +35,9 @@ xtdoTaskTests =
     [blankTask{name="newtask", scheduled=Nothing, category=Next}] ~=?
       (extractTasks $ run ["a", "newtask"] noData)
 
+  , "a adds a new unscheduled task" ~:
+    [blankTask{name="this is not a 3d", scheduled=Nothing, category=Next}] ~=?
+      (extractTasks $ run ["a", "this is not a 3d"] noData)
   , "a adds a new scheduled task for today" ~:
     [blankTask{name="newtask", scheduled=Just today, category=Today}] ~=?
       (extractTasks $ run ["a", "0", "newtask"] noData)
