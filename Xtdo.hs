@@ -118,10 +118,9 @@ addCategory tasks today = map (addCategoryToTask today) tasks
   where
     addCategoryToTask today Task{name=n,scheduled=Nothing} =
       blankTask{name=n,scheduled=Nothing,category=Next}
-    addCategoryToTask today task =
-      task { category = if scheduled task == Just today
-                          then Today
-                          else Scheduled }
+    addCategoryToTask today Task{name=n,scheduled=Just day}
+      | day <= today = blankTask{name=n,category = Today,    scheduled=Just day}
+      | otherwise    = blankTask{name=n,category = Scheduled,scheduled=Just day}
 
 
 createRecurring :: Day -> ProgramData -> ProgramData

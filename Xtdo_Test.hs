@@ -58,6 +58,14 @@ xtdoTaskTests =
 extractTasks (x, y)      = tasks x
 extractCategories (x, y) = y
 
+addCategoryTests =
+  [ "adds Today to tasks that where scheduled for yesterday" ~:
+    [blankTask{ scheduled = Just yesterday, category = Today }] ~=?
+    addCategory [blankTask{ scheduled = Just yesterday }] today
+  ]
+  where today = (d 2011 1 2)
+        yesterday = (d 2011 1 1)
+
 xtdoBumpTests =
   [ "b 0 bumps to today" ~:
     expectedTasks ~=? (extractTasks $ run ["b", "0", "newtask"] testTasks)
@@ -196,6 +204,7 @@ dayTests =
 main = runTestTT $ TestList ( xtdoTaskTests ++
                               xtdoRecurTests ++
                               xtdoBumpTests ++
+                              addCategoryTests ++
                               parseFrequencyTests ++
                               frequencyToStringTests ++
                               calculateNextOccurrenceTests ++
