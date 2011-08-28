@@ -1,6 +1,6 @@
 A haskell port of https://github.com/xaviershay/xtdo
-It does everything except for recurring tasks.
-I don't use it yet.
+There are still a few rough edges (see TODO) but I am
+using it in preference to the original since it is much faster.
 
     cabal configure
     cabal build
